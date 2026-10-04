@@ -10,7 +10,7 @@ const path = require("path");
 const store = require("./lib/store");
 const { systemOne, novaMedicao, MOCK, MODEL } = require("./lib/jev");
 const { recomendar, CRITERIOS, MAX_RESULTADOS } = require("./lib/recomendar");
-const { importar, importarPorImdb, buscarCandidatos, buscarImdb, ondeAssistir, importarVizinhos, importarPedido } = require("./lib/importar");
+const { importar, importarPorImdb, catalogar, buscarCandidatos, buscarImdb, ondeAssistir, importarVizinhos, importarPedido } = require("./lib/importar");
 const gemini = require("./lib/gemini");
 const cota = require("./lib/cota");
 const buscas = require("./lib/buscas");
@@ -203,7 +203,7 @@ http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/buscar-filme") {
       // Só procura candidatos (IMDb + catálogo). Não chama o Jev e não gasta a consulta grátis.
       const q = (url.searchParams.get("q") || "").trim(), lang = idiomaDe(req, url);
-      const resultados = q.length < 2 ? [] : await buscarCandidatos(q);
+      const resultados = q.length < 2 ? [] : await buscarCandidatos(q, IDIOMAS[lang].tmdb);
       for (const r of resultados) if (r.id) { const f = store.porId(r.id); if (f) r.titulo = localizar(f, lang).titulo; }
       return send(res, 200, { resultados });
     }
@@ -235,6 +235,23 @@ http.createServer(async (req, res) => {
         if (!(e instanceof ErroUsuario)) console.error(e);
         const uso = med.fechar();
         return send(res, e instanceof ErroUsuario ? 400 : 502, { erro: e.message, codigo: e.codigo || "erro", uso, uso_total: somar(uso) });
+      }
+    }
+    if (req.method === "POST" && url.pathname === "/api/catalogar") {
+      // Filme escolhido na lista que ainda não está no catálogo: baixa a ficha agora (IMDb, Wikidata, Wikipedia, TMDB, OMDb).
+      let raw = ""; for await (const c of req) raw += c;
+      const med = novaMedicao(), lang = idiomaDe(req, url);
+      try {
+        const antes = store.todos().length;
+        const f = await catalogar(JSON.parse(raw || "{}"), med);
+        const uso = med.fechar();
+        if (!f) return send(res, 400, { erro: "Sem dados suficientes", codigo: "sem_dados", uso, uso_total: somar(uso) });
+        importarVizinhos(f, null, 20).catch(e => console.error("Vizinhos:", e.message));
+        return send(res, 200, { filme: { ...fichaPublica(f, lang), estilo_pt: f.estilo }, importado: store.todos().length > antes, uso, uso_total: somar(uso) });
+      } catch (e) {
+        console.error(e);
+        const uso = med.fechar();
+        return send(res, 502, { erro: e.message, codigo: "erro", uso, uso_total: somar(uso) });
       }
     }
     if (req.method === "POST" && url.pathname === "/api/sentiu-falta") {

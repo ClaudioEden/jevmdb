@@ -186,6 +186,8 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
 #av-coment .btn{min-height:42px;padding:8px 18px}
 #av-ok{text-align:center;margin:0}
 @media (max-width:640px){.estrela{min-width:28px;padding:2px}.estrela svg{width:20px;height:20px}.langs{position:absolute;top:10px;right:16px}.top-in{position:relative}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--primary-soft);border-top-color:var(--primary);border-radius:50%;margin-right:6px;vertical-align:-1px;animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
 .novo{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);margin-left:6px;vertical-align:middle}
 .skel{height:180px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 0,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;border:1px solid var(--line)}
 @media (prefers-reduced-motion:no-preference){
@@ -351,6 +353,7 @@ const TXT = {
       avaliacao_invalida: "Não consegui registrar a avaliação." },
     elenco: "Elenco", ler_mais: "ler mais", ler_menos: "ler menos",
     ficha_abrir: "Ver ficha completa", ficha_fechar: "Recolher ficha", ampliado: "{n} filmes novos no catálogo", falta_titulo: "Sentiu falta de algum filme nesta lista?", falta_ph: "Diga qual, e a gente inclui no catálogo", falta_ok: "Obrigado! Vamos incluir esse filme no catálogo em breve.",
+    novo_pill: "novo", baixando: "Baixando a ficha do filme (IMDb, Wikidata, Wikipedia e TMDB)…", baixada: "Ficha baixada e incluída no catálogo.", erro_baixar: "Não consegui baixar a ficha deste filme. Tente outro.",
     lang_nome: "Português",
   },
   en: {
@@ -389,6 +392,7 @@ const TXT = {
       avaliacao_invalida: "Couldn't save your rating." },
     elenco: "Cast", ler_mais: "read more", ler_menos: "read less",
     ficha_abrir: "Show full details", ficha_fechar: "Hide details", ampliado: "{n} new movies added to the catalog", falta_titulo: "Missing a movie from this list?", falta_ph: "Tell us which one and we'll add it to the catalog", falta_ok: "Thanks! We'll add that movie to the catalog soon.",
+    novo_pill: "new", baixando: "Fetching the movie details (IMDb, Wikidata, Wikipedia and TMDB)…", baixada: "Details fetched and added to the catalog.", erro_baixar: "Couldn't fetch this movie's details. Try another one.",
     lang_nome: "English",
   },
   es: {
@@ -427,6 +431,7 @@ const TXT = {
       avaliacao_invalida: "No pude registrar tu calificación." },
     elenco: "Reparto", ler_mais: "leer más", ler_menos: "leer menos",
     ficha_abrir: "Ver ficha completa", ficha_fechar: "Ocultar ficha", ampliado: "{n} películas nuevas en el catálogo", falta_titulo: "¿Echaste en falta alguna película en esta lista?", falta_ph: "Dinos cuál y la agregamos al catálogo", falta_ok: "¡Gracias! Agregaremos esa película al catálogo pronto.",
+    novo_pill: "nueva", baixando: "Descargando la ficha de la película (IMDb, Wikidata, Wikipedia y TMDB)…", baixada: "Ficha descargada y agregada al catálogo.", erro_baixar: "No pude descargar la ficha de esta película. Prueba otra.",
     lang_nome: "Español",
   },
 };
@@ -555,21 +560,45 @@ async function procurar(q) {
       ${capa(f.poster, f.titulo, "thumb")}
       <span><b>${esc(f.titulo)}${f.titulo_original && f.titulo_original !== f.titulo ? ` <small style="display:inline">· ${esc(f.titulo_original)}</small>` : ""}</b>
       <small>${f.ano || T("ano_q")}${f.atores?.length ? " · " + esc(f.atores.join(", ")) : ""}</small></span>
-      <span class="pill ${f.no_catalogo ? "" : "ext"}">${f.no_catalogo ? T("no_catalogo") : "IMDb"}</span></button></li>`).join("");
+      <span class="pill ${f.no_catalogo ? "" : "ext"}">${f.no_catalogo ? T("no_catalogo") : T("novo_pill")}</span></button></li>`).join("");
     $("#sugs").querySelectorAll(".sug").forEach(b => b.onclick = () => escolher(lista[b.dataset.i]));
     $("#q").setAttribute("aria-expanded", lista.length ? "true" : "false");
     $("#q-hint").textContent = lista.length ? T("q_hint_ok") : T("q_hint_vazio");
   } catch { $("#q-hint").textContent = T("q_hint_erro"); }
 }
-function escolher(f) {
+let BAIXANDO = 0; // vez da baixa em andamento (para ignorar respostas antigas se a pessoa trocar de filme)
+function mostrarEscolhido(f, status) {
+  $("#escolha").innerHTML = `<div class="chosen">${capa(f.poster, f.titulo, "thumb")}
+    <div><b>${esc(f.titulo)}</b><small>${esc(f.titulo_original && f.titulo_original !== f.titulo ? f.titulo_original + " · " : "")}${f.ano || ""}${f.atores?.length ? " · " + esc(f.atores.join(", ")) : ""}</small><br>
+    <small class="status">${status}</small></div>
+    <button type="button" class="link" id="trocar">${T("trocar")}</button></div>`;
+  $("#trocar").onclick = () => { BAIXANDO++; ESCOLHIDO = null; $("#escolha").hidden = true; $("#caixa").hidden = false; $("#q").focus(); atualizarTags(); validar(); };
+}
+async function escolher(f) {
   ESCOLHIDO = f;
   $("#sugs").innerHTML = ""; $("#q").setAttribute("aria-expanded", "false");
   $("#caixa").hidden = true; $("#escolha").hidden = false;
-  $("#escolha").innerHTML = `<div class="chosen">${capa(f.poster, f.titulo, "thumb")}
-    <div><b>${esc(f.titulo)}</b><small>${esc(f.titulo_original && f.titulo_original !== f.titulo ? f.titulo_original + " · " : "")}${f.ano || ""}${f.atores?.length ? " · " + esc(f.atores.join(", ")) : ""}</small><br>
-    <small>${f.no_catalogo ? T("ja_catalogo") : T("novo_catalogar")}</small></div>
-    <button type="button" class="link" id="trocar">${T("trocar")}</button></div>`;
-  $("#trocar").onclick = () => { ESCOLHIDO = null; $("#escolha").hidden = true; $("#caixa").hidden = false; $("#q").focus(); atualizarTags(); validar(); };
+  if (f.no_catalogo) { mostrarEscolhido(f, T("ja_catalogo")); atualizarTags(); validar(); return; }
+  // Ainda não está no catálogo: baixa a ficha agora, antes da busca, e mostra o andamento.
+  const vez = ++BAIXANDO;
+  ESCOLHIDO = {...f, baixando: true};
+  mostrarEscolhido(f, `<span class="spin" aria-hidden="true"></span>${T("baixando")}`);
+  validar();
+  try {
+    const r = await api("/api/catalogar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({imdb: f.imdb, tmdb: f.tmdb})});
+    const d = await r.json();
+    if (vez !== BAIXANDO) return;
+    mostrarUso(d.uso, d.uso_total);
+    if (!r.ok) throw new Error(erroTxt(d));
+    const x = d.filme;
+    ESCOLHIDO = {id: x.id, imdb: x.imdb, titulo: x.titulo, titulo_original: x.titulo_original, ano: x.ano, atores: (x.elenco || []).slice(0, 2), poster: x.poster || f.poster, no_catalogo: true};
+    if (!CAT.some(c => c.id === x.id)) CAT.push({id: x.id, titulo_br: x.titulo, titulo_original: x.titulo_original, ano: x.ano, estilo: x.estilo_pt || [], estilo_tr: x.estilo || []});
+    mostrarEscolhido(ESCOLHIDO, d.importado ? T("baixada") : T("ja_catalogo"));
+  } catch (err) {
+    if (vez !== BAIXANDO) return;
+    ESCOLHIDO = null;
+    mostrarEscolhido(f, `<span style="color:var(--danger)">${esc(err.message || T("erro_baixar"))}</span>`);
+  }
   atualizarTags(); validar();
 }
 
@@ -587,7 +616,7 @@ function validar() {
   const texto = ABA === "texto";
   $("#go-txt").textContent = texto ? T("go_identificar") : T("go_buscar");
   $("#go").hidden = texto && (!!TX.cand || !$("#t-mais").hidden);
-  $("#go").disabled = texto ? $("#pedido").value.trim().length < 5 : !(ESCOLHIDO && criteriosMarcados().length);
+  $("#go").disabled = texto ? $("#pedido").value.trim().length < 5 : !(ESCOLHIDO && !ESCOLHIDO.baixando && criteriosMarcados().length);
 }
 validar();
 
