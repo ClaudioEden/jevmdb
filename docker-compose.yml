@@ -1,0 +1,14 @@
+# Uso: docker compose up -d --build   (o .env com as chaves fica ao lado deste arquivo, fora do git)
+services:
+  jevmdb:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - jevmdb-dados:/data
+    # Só a própria VPS enxerga a porta; o proxy (Caddy, Nginx, Traefik) faz o HTTPS na frente.
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  jevmdb-dados:

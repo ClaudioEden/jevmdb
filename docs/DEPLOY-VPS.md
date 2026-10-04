@@ -8,6 +8,16 @@ O app é Node puro, sem dependências e sem banco de dados: as fichas e a trava 
 visitante ──HTTPS──> Caddy (portas 80/443) ──> node server.js (127.0.0.1:3000) ──> /var/lib/jevmdb (fichas + trava)
 ```
 
+## Três caminhos
+
+| Caminho | Quando usar | Seções |
+| --- | --- | --- |
+| **A. Direto na VPS** (systemd + Caddy) | VPS nova e só para o JevMDB | 0 a 11 |
+| **B. Docker Compose** | VPS que já usa Docker, ou você quer tudo isolado | 0, 1 e 12 |
+| **C. Dokploy** | VPS que já tem Dokploy com outros serviços | 0, 1 e 13 |
+
+Os três rodam o mesmo código e guardam os dados da mesma forma: fichas, trava e buscas numa pasta (ou volume) fora do código. Numa VPS que já tem outras coisas, leia também a seção 14.
+
 ## 0. O que você precisa
 
 - [ ] Uma VPS com **Ubuntu 24.04** (1 vCPU e 1 GB de RAM bastam), com IPv4 fixo e acesso SSH como root ou com sudo.
@@ -220,6 +230,81 @@ chmod +x /etc/cron.daily/jevmdb-limpar-buscas
 - **TypeSafe (Jev):** cada busca custa entre US$ 0,001 e US$ 0,007. O total desde o último reinício aparece na barra do topo do site ("Total gasto"). Confira o saldo em console.typesafe.ai.
 - **Gemini:** só a aba de texto usa, umas centenas de tokens por busca.
 - **TMDB e OMDb:** grátis nos limites atuais (o OMDb grátis permite 1.000 consultas por dia; ele só é chamado quando um filme novo entra no catálogo).
+
+## 12. Caminho B: Docker Compose
+
+O repositório já tem `Dockerfile` e `docker-compose.yml`. A imagem usa Node 22 (alpine), roda como usuário sem privilégio e guarda os dados no volume `/data`.
+
+```bash
+git clone https://github.com/ClaudioEden/jevmdb.git /opt/jevmdb && cd /opt/jevmdb
+cp .env.example .env && nano .env      # as quatro chaves; JEV_COTA_ANONIMA=1
+chmod 600 .env
+docker compose up -d --build
+docker compose ps                      # tem que ficar "healthy"
+curl -s 127.0.0.1:3000/api/catalogo | head -c 120; echo
+```
+
+Copiar as fichas do Mac para dentro do volume:
+
+```bash
+# no Mac, dentro da pasta do projeto
+rsync -avz data/filmes/ root@IP_DA_VPS:/tmp/filmes/
+# na VPS
+cd /opt/jevmdb
+docker compose cp /tmp/filmes/. jevmdb:/data/filmes/
+docker compose exec -u root jevmdb chown -R node:node /data
+docker compose restart
+```
+
+Na frente, use o proxy que já existir na VPS (seção 14) ou o Caddy da seção 7, apontando para `127.0.0.1:3000`.
+
+| Para quê | Comando (em `/opt/jevmdb`) |
+| --- | --- |
+| Log ao vivo | `docker compose logs -f` |
+| Atualizar | `git pull && docker compose up -d --build` |
+| Aumentar o catálogo | `docker compose exec jevmdb node scripts/semear.js 10 && docker compose restart` |
+| Zerar a trava | `docker compose exec jevmdb rm /data/cota.json && docker compose restart` |
+| Backup | `docker run --rm -v jevmdb_jevmdb-dados:/d -v /var/backups:/b alpine tar czf /b/jevmdb-$(date +%F).tgz -C /d .` |
+
+## 13. Caminho C: Dokploy
+
+O Dokploy já tem o Traefik ocupando as portas 80 e 443 e emitindo os certificados, então **não instale o Caddy** (pule as seções 2, 3, 6 e 7).
+
+1. No Dokploy: **Create Project → Create Service → Application**.
+2. **Source**: GitHub (ou "Git" com `https://github.com/ClaudioEden/jevmdb.git`), branch `main`.
+3. **Build Type**: `Dockerfile` (o caminho padrão `./Dockerfile` serve).
+4. **Environment**: cole as variáveis do `.env` (as quatro chaves, `JEV_COTA_ANONIMA=1`, `JEV_COTA_LIMITE_IP=5`). As de produção (`HOST`, `PORT`, `JEV_DADOS`, `JEV_ATRAS_DE_PROXY`) já vêm no Dockerfile.
+5. **Advanced → Volumes / Mounts**: crie um *Volume Mount* com o nome `jevmdb-dados` e o caminho no container `/data`. Sem isso, as fichas e a trava somem a cada novo deploy.
+6. **Domains**: host `jevmdb.w3pd.com.br`, path `/`, **Container Port `3000`**, HTTPS ligado, certificado **Let's Encrypt**.
+7. **Deploy**. Depois de o DNS (seção 1) apontar para a VPS, abra https://jevmdb.w3pd.com.br.
+
+Para copiar as fichas, use o mesmo procedimento da seção 12, trocando `docker compose cp` por `docker cp /tmp/filmes/. NOME_DO_CONTAINER:/data/filmes/` (o nome aparece em `docker ps`). Depois clique em **Restart** no Dokploy.
+
+Para atualizar a cada `git push`, ligue o **Auto Deploy** na aba Git do serviço (ou use o webhook que o Dokploy mostra).
+
+## 14. VPS que já tem outras coisas
+
+Pode instalar, sim. O JevMDB usa pouco (uns 60 MB de RAM, sem banco, sem dependências). Só confira três pontos:
+
+- **Portas 80 e 443.** Se já existir um Nginx, Apache, Traefik ou Caddy atendendo os outros sites, **não instale outro Caddy**. Use o que já está lá e adicione um site para `jevmdb.w3pd.com.br` repassando para `127.0.0.1:3000`. No Nginx:
+
+  ```nginx
+  server {
+      server_name jevmdb.w3pd.com.br;
+      location / {
+          proxy_pass http://127.0.0.1:3000;
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+      }
+  }
+  ```
+
+  Depois: `certbot --nginx -d jevmdb.w3pd.com.br` para o HTTPS. Se já usar Caddy, basta acrescentar o bloco da seção 7 ao Caddyfile existente.
+- **Porta 3000.** Se outro app já usa a 3000, troque `PORT` (no systemd, no `.env` ou no compose, por exemplo `127.0.0.1:3010:3000`) e aponte o proxy para a nova porta. Veja o que está ocupado com `ss -ltnp`.
+- **Node.** Se a VPS já tem outra versão do Node para outros apps, prefira o caminho B ou C (Docker), que traz o Node 22 isolado.
+
+Um cuidado em qualquer caminho: o IP do visitante, usado pela trava, é o **último** do cabeçalho `X-Forwarded-For`. Isso está certo quando há um único proxy na frente (Caddy, Nginx, Traefik ou Dokploy). Se você puser a Cloudflare com proxy laranja na frente de tudo, me avise que eu ajusto para ler o `CF-Connecting-IP`.
 
 ## Quando isso deixar de servir
 
