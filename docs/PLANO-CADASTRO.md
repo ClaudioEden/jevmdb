@@ -1,6 +1,6 @@
 # Plano: cadastro por WhatsApp e níveis de acesso
 
-Status: **planejamento**. Nada disto está implementado ainda.
+Status: **planejamento** (atualizado em 04/10/2026). Nada disto está implementado ainda. Próximo passo: criar o Postgres no Dokploy (seção 3).
 
 ## 1. Os três níveis
 
@@ -29,15 +29,32 @@ Regras que valem para todos:
 - Uma conta por número.
 - Desafio anti-robô invisível (ex.: Cloudflare Turnstile, grátis) antes de enviar o código.
 
-### Quem envia a mensagem
+### Quem envia a mensagem: Evolution API
 
-| Opção | Prós | Contras |
+Decidido: o código sai por uma **instância da Evolution API** do próprio Eden. Ela tem dois modos, e o app funciona com os dois:
+
+| Modo da instância | Como o código é enviado | Observação |
 | --- | --- | --- |
-| **WhatsApp Cloud API (Meta), modelo "autenticação"** (recomendado) | Oficial, tem botão "copiar código" na mensagem, cobra por mensagem entregue | Exige conta Meta Business, número dedicado e aprovação do modelo (alguns dias). Preço por mensagem na tabela da Meta para o Brasil (centavos) |
-| Twilio Verify (WhatsApp + SMS de reserva) | Pronto em uma tarde, já cuida de tentativas e expiração | Mais caro por verificação |
-| APIs não oficiais (Z-API, Evolution e similares) | Baratas e rápidas | Risco de banimento do número e de violar os termos do WhatsApp. **Não recomendo.** |
+| **WhatsApp Business oficial (Cloud API da Meta)** | Mensagem de **modelo** (template) da categoria "Autenticação", com o código como variável | Oficial, sem risco de banimento. Exige conta Meta Business, número dedicado e o modelo aprovado pela Meta |
+| **Baileys (WhatsApp Web, não oficial)** | Mensagem de texto comum | Rápido de ligar, mas pode banir o número. Usar **só com um número dedicado**, nunca o pessoal |
 
-Sugestão: começar com o Twilio Verify para validar a ideia e migrar para a Cloud API quando o volume justificar.
+No código, tudo passa por uma função só, `enviarCodigo(telefone, codigo)`, em `lib/whatsapp.js`. Trocar de modo é mudar uma variável, sem mexer no resto:
+
+```
+EVOLUTION_URL=https://evolution.seudominio.com.br   # endereço da sua instância
+EVOLUTION_API_KEY=...                                # cabeçalho "apikey"
+EVOLUTION_INSTANCE=jevmdb                            # nome da instância
+WHATSAPP_MODO=texto                                  # texto (Baileys) | template (Cloud API)
+WHATSAPP_TEMPLATE=jevmdb_codigo                      # nome do modelo aprovado (só no modo template)
+WHATSAPP_TEMPLATE_IDIOMA=pt_BR
+```
+
+- Modo `texto`: `POST {EVOLUTION_URL}/message/sendText/{EVOLUTION_INSTANCE}` com a mensagem "Seu código JevMDB é 123456. Ele vale por 5 minutos."
+- Modo `template`: `POST {EVOLUTION_URL}/message/sendTemplate/{EVOLUTION_INSTANCE}` com o modelo e o código como parâmetro.
+- Os caminhos acima são os da Evolution API v2. Confiro na versão da sua instância antes de implementar.
+- Se a Evolution estiver na mesma VPS do Dokploy, o JevMDB fala com ela pela rede interna, sem passar pela internet.
+
+Texto sugerido para o modelo de autenticação (pt-BR): "{{1}} é o seu código de acesso ao JevMDB. Não compartilhe." A Meta pede um modelo por idioma; os de inglês e espanhol entram junto com a versão nesses idiomas.
 
 ## 3. Banco de dados (Postgres)
 
@@ -92,14 +109,34 @@ create table compras (              -- fase de créditos
   valor_brl   numeric(10,2) not null,
   creditos    integer not null,
   status      text not null,        -- 'pendente' | 'pago' | 'cancelado'
-  pagamento_id text unique,         -- id no Mercado Pago/Stripe
+  pagamento_id text unique,         -- id do pagamento no Mercado Pago
   criado_em   timestamptz not null default now()
 );
 ```
 
+### Criar o Postgres no Dokploy (passo a passo)
+
+1. No Dokploy, abra o **mesmo projeto** do JevMDB → **Create Service** → **Database** → **PostgreSQL**.
+2. Preencha:
+   | Campo | Valor |
+   | --- | --- |
+   | Name | `jevmdb-db` |
+   | Database Name | `jevmdb` |
+   | Database User | `jevmdb` |
+   | Database Password | uma senha forte (o botão de gerar serve) |
+   | Docker Image | `postgres:17` (o padrão do Dokploy também serve) |
+3. Clique em **Create** e depois em **Deploy**. Espere o status ficar verde.
+4. Na aba **General** do banco, copie a **Internal Connection URL**. Ela tem o formato `postgresql://jevmdb:SENHA@jevmdb-db-xxxxxx:5432/jevmdb`.
+5. **Não** preencha "External Port". O banco fica acessível só pela rede interna do Dokploy, sem porta aberta na internet.
+6. No serviço do **JevMDB** → **Environment**, acrescente uma linha (sem aspas): `DATABASE_URL=postgresql://jevmdb:SENHA@jevmdb-db-xxxxxx:5432/jevmdb`. Salve, mas **ainda não precisa fazer Deploy**: enquanto o código não usar o banco, a variável é ignorada.
+7. **Backup:** na aba **Backups** do banco, configure um destino S3 (Cloudflare R2 e Backblaze B2 têm plano grátis) e um agendamento diário. Sem destino S3, use pelo menos o **Volume Backups** do Dokploy.
+8. Me avise quando terminar. Para os testes no Mac, subo um Postgres local com Docker e ninguém mexe no seu.
+
+Na primeira subida do código novo, o app cria as tabelas sozinho (migração automática) e um script importa as fichas, a trava, as buscas e as avaliações que hoje estão em arquivos.
+
 O limite da conta grátis sai de uma consulta simples em `buscas` (quantas nesta semana e neste mês). A trava do visitante (hoje `data/cota.json`) passa a usar a mesma tabela.
 
-A migração é localizada: `lib/store.js` (fichas) e `lib/cota.js` (trava) são os únicos módulos que leem e gravam dados. O resto do app não muda.
+A migração é localizada: `lib/store.js` (fichas), `lib/cota.js` (trava), `lib/buscas.js` (buscas e avaliações) e os pedidos de "sentiu falta" são os únicos módulos que leem e gravam dados. O resto do app não muda. Dependência nova: só o driver `pg`.
 
 ## 4. Créditos (fase seguinte)
 
@@ -113,8 +150,10 @@ Sugestões de pacote, no espírito do "1,99":
 | Sessão dupla | R$ 4,99 | 15 | R$ 0,33 |
 | Maratona | R$ 9,90 | 40 | R$ 0,25 |
 
-- **Pix** como meio principal (Mercado Pago ou Stripe com Pix). Em valores tão pequenos, a tarifa fixa do cartão come boa parte do valor; no Pix a tarifa é percentual e baixa.
-- O crédito só entra quando o **webhook** de pagamento confirmar (nunca pelo retorno da tela).
+- **Mercado Pago, com Pix** como meio principal (decidido). Em valores tão pequenos, a tarifa fixa do cartão come boa parte do valor; no Pix a tarifa é percentual e baixa.
+- Fluxo: a pessoa escolhe o pacote → o servidor cria o pagamento Pix na API do Mercado Pago (`POST /v1/payments` com `payment_method_id: "pix"`) → a tela mostra o QR Code e o "copia e cola" → o Mercado Pago avisa no webhook `/api/pagamentos/webhook` → o servidor confere o pagamento na API e só então soma os créditos.
+- O crédito só entra quando o **webhook** confirmar e a consulta à API do Mercado Pago bater (nunca pelo retorno da tela). O webhook é idempotente: o mesmo pagamento nunca credita duas vezes (`pagamento_id unique`).
+- Variáveis: `MP_ACCESS_TOKEN` (credencial de produção) e `MP_WEBHOOK_SECRET` (assinatura do webhook). Para testar, as credenciais de teste do Mercado Pago.
 - Créditos não expiram (ou expiram em 12 meses; decidir).
 - Se quiser a referência ao dólar: "US$ 0.99 / R$ 4,99" no pacote do meio funciona como chamariz visual, mas cobrar em reais simplifica nota e Pix.
 
@@ -129,15 +168,21 @@ Sugestões de pacote, no espírito do "1,99":
 
 1. **Postgres + migração** de `store.js` e `cota.js` (sem mudar nada na tela). Testar que tudo continua igual.
 2. **Corte no servidor**: visitante recebe 3 resultados + banner.
-3. **Cadastro por WhatsApp** (Twilio Verify para começar), sessões e tela "Minha conta".
+3. **Cadastro por WhatsApp** (Evolution API, modo texto ou template), sessões e tela "Minha conta".
 4. **Limites da conta grátis** (2/semana, 5/mês) com contador na tela.
-5. **Créditos**: pacotes, Pix, webhook e extrato.
+5. **Créditos**: pacotes, Pix pelo Mercado Pago, webhook e extrato.
 6. **Correção de digitação com IA** na busca por título (recurso pago, como combinado para a v2).
 
-## Decisões em aberto
+## Decisões
 
-- [ ] Twilio Verify para começar, ou ir direto para a Cloud API da Meta?
-- [ ] Semana e mês de calendário, ou janelas móveis (7 e 30 dias)?
+Já decididas (04/10/2026):
+- [x] Envio do código: Evolution API (modo oficial com template ou Baileys; o app aceita os dois).
+- [x] Pagamentos: Mercado Pago, com Pix.
+- [x] Semana e mês de calendário (segunda a domingo; dia 1 ao fim do mês), fuso de Brasília.
+- [x] Quem se cadastra depois da busca grátis ganha a semana inteira (2 buscas).
+- [x] Banco: Postgres como serviço no Dokploy.
+
+Em aberto:
+- [ ] Modo da Evolution: oficial (template) ou Baileys? Se for Baileys, qual número dedicado.
 - [ ] Valores e nomes dos pacotes.
 - [ ] Créditos expiram?
-- [ ] O visitante que se cadastra depois da busca grátis ganha a semana inteira (2 buscas) ou desconta a que já fez?
