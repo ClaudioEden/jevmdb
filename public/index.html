@@ -93,13 +93,25 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
 /* Estado recolhido */
-.resumo{display:none;align-items:center;gap:14px;padding:14px 20px}
+.resumo{display:none;align-items:flex-start;gap:16px;padding:16px 20px}
 .search-card.recolhido .search{display:none}
 .search-card.recolhido .resumo{display:flex}
 .resumo .thumb{width:40px;height:60px}
 .resumo .txt{flex:1;min-width:0}
 .resumo b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .resumo small{color:var(--muted)}
+.resumo .r-cabeca{display:flex;align-items:flex-start;gap:12px;justify-content:space-between}
+.resumo.com-ficha .thumb{width:96px;height:144px;border-radius:10px}
+.resumo.com-ficha #r-tit{white-space:normal;font-size:1.15rem;line-height:1.25}
+.r-ref{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.r-det{margin-top:8px}
+.r-det .orig{color:var(--muted);font-size:.86rem}
+.r-det .elenco{font-size:.86rem;margin-top:4px}
+.r-det .elenco span{color:var(--muted)}
+.r-det .syn{-webkit-line-clamp:3;margin:8px 0 6px}
+.r-det .syn.aberta{-webkit-line-clamp:unset;display:block}
+.r-det .mais{font:600 .8rem var(--font);color:var(--primary);background:none;border:0;padding:0;cursor:pointer}
+@media (max-width:640px){.resumo{flex-wrap:wrap}.resumo.com-ficha .thumb{width:72px;height:108px}#nova{width:100%}}
 
 /* Resultados */
 .res-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px;margin:28px 0 14px}
@@ -208,7 +220,7 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
   <section class="card search-card" id="busca">
     <div class="resumo">
       <span class="thumb" id="r-thumb"></span>
-      <div class="txt"><b id="r-tit"></b><small id="r-sub"></small></div>
+      <div class="txt"><div class="r-ref" id="r-ref" hidden data-i18n="ref_lbl"></div><b id="r-tit"></b><small id="r-sub"></small><div class="r-det" id="r-det" hidden></div></div>
       <button class="btn ghost" id="nova" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span data-i18n="nova"></span></button>
     </div>
     <form class="search" id="f" autocomplete="off">
@@ -321,6 +333,7 @@ const TXT = {
       filme_nao_encontrado: "Não encontrei esse filme no IMDb nem na Wikipedia. Confira o título.", nao_identificado: "Não consegui identificar o filme no seu texto. Tente citar o título, o ano ou um ator.",
       fora_catalogo: "O filme do pedido ainda não está no catálogo. Use a aba Escolher filme para procurar e catalogar.", sem_referencia: "Informe o filme de referência ou escreva um pedido.",
       avaliacao_invalida: "Não consegui registrar a avaliação." },
+    elenco: "Elenco", ler_mais: "ler mais", ler_menos: "ler menos",
     lang_nome: "Português",
   },
   en: {
@@ -357,6 +370,7 @@ const TXT = {
       filme_nao_encontrado: "I couldn't find that movie on IMDb or Wikipedia. Check the title.", nao_identificado: "I couldn't identify the movie in your text. Try mentioning the title, year or an actor.",
       fora_catalogo: "That movie isn't in the catalog yet. Use the Pick a movie tab to search and add it.", sem_referencia: "Pick a reference movie or write a request.",
       avaliacao_invalida: "Couldn't save your rating." },
+    elenco: "Cast", ler_mais: "read more", ler_menos: "read less",
     lang_nome: "English",
   },
   es: {
@@ -393,6 +407,7 @@ const TXT = {
       filme_nao_encontrado: "No encontré esa película en IMDb ni en Wikipedia. Revisa el título.", nao_identificado: "No pude identificar la película en tu texto. Intenta mencionar el título, el año o un actor.",
       fora_catalogo: "Esa película aún no está en el catálogo. Usa la pestaña Elegir película para buscarla y agregarla.", sem_referencia: "Elige una película de referencia o escribe un pedido.",
       avaliacao_invalida: "No pude registrar tu calificación." },
+    elenco: "Reparto", ler_mais: "leer más", ler_menos: "leer menos",
     lang_nome: "Español",
   },
 };
@@ -557,10 +572,27 @@ function validar() {
 validar();
 
 // ---------- Recolher / Nova pesquisa ----------
-function recolher(titulo, sub, poster) {
+function recolher(titulo, sub, poster, ref) {
   $("#r-thumb").outerHTML = capa(poster, titulo, "thumb").replace(/class="thumb"/, 'class="thumb" id="r-thumb"');
   $("#r-tit").textContent = titulo; $("#r-sub").textContent = sub;
   $("#busca").classList.add("recolhido");
+  // Com a ficha da referência: mostra os dados do filme, para a pessoa conferir se a comparação faz sentido.
+  $(".resumo").classList.toggle("com-ficha", !!ref);
+  $("#r-ref").hidden = !ref; $("#r-det").hidden = !ref;
+  if (!ref) { $("#r-det").innerHTML = ""; return; }
+  const fontes = (ref.fontes || [{nome: T("fonte"), url: ref.fonte}]).concat(ref.imdb && !(ref.fontes || []).some(x => x.nome === "IMDb") ? [{nome: "IMDb", url: `https://www.imdb.com/title/${ref.imdb}/`}] : []);
+  $("#r-det").innerHTML = `
+    <div class="orig">${esc(ref.titulo_original)} · ${ref.ano || ""}${ref.diretor ? " · " + esc(ref.diretor) : ""}${ref.nota_imdb ? ` · IMDb ${nf(ref.nota_imdb, 1)}` : ""}${ref.nota_tmdb ? ` · TMDB ${nf(ref.nota_tmdb, 1)}` : ""}</div>
+    ${ref.elenco?.length ? `<div class="elenco"><span>${T("elenco")}:</span> ${esc(ref.elenco.slice(0, 4).join(", "))}</div>` : ""}
+    <div class="tagsl">${[...(ref.generos || []).slice(0, 3), ...(ref.estilo || []).slice(0, 5)].filter((t, i, a) => a.findIndex(x => x.toLowerCase() === t.toLowerCase()) === i).map(t => `<span>${esc(t)}</span>`).join("")}</div>
+    ${ref.sinopse ? `<p class="syn" id="r-syn">${esc(ref.sinopse)}</p><button type="button" class="mais" id="r-mais">${T("ler_mais")}</button>` : ""}
+    <div class="fontes" style="margin-top:6px">${fontes.filter(x => x.url).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.nome)}</a>`).join("")}</div>
+    <div class="onde" data-id="${esc(ref.id)}"><b>${T("onde_lbl")}</b> <span>${T("procurando")}</span></div>`;
+  const syn = $("#r-syn");
+  if (syn) {
+    requestAnimationFrame(() => { if (syn.scrollHeight <= syn.clientHeight + 2) $("#r-mais").hidden = true; });
+    $("#r-mais").onclick = () => { const a = syn.classList.toggle("aberta"); $("#r-mais").textContent = a ? T("ler_menos") : T("ler_mais"); };
+  }
 }
 $("#nova").onclick = () => {
   $("#busca").classList.remove("recolhido");
@@ -691,7 +723,7 @@ async function buscar(body, titulo, poster, peloTexto) {
     if (d.importado) CAT.push(ref);
     if (!peloTexto && !ESCOLHIDO.id) { ESCOLHIDO = {...ESCOLHIDO, id: ref.id, no_catalogo: true}; }
     if (peloTexto && TX.cand && !TX.cand.id) TX.cand = {...TX.cand, id: ref.id, no_catalogo: true};
-    recolher(`${ref.titulo_br} (${ref.ano})`, T("criterios_sub", {c: d.criterios.map(c => NOMES[c]).join(", ")}) + (d.importado ? " · " + T("catalogado_agora") : "") + (peloTexto ? " · " + T("pelo_texto") : ""), ref.poster);
+    recolher(`${ref.titulo_br} (${ref.ano})`, T("criterios_sub", {c: d.criterios.map(c => NOMES[c]).join(", ")}) + (d.importado ? " · " + T("catalogado_agora") : "") + (peloTexto ? " · " + T("pelo_texto") : ""), ref.poster, ref);
     $("#count").textContent = T("count", {n: d.ranking.length, t: d.candidatos_avaliados});
     const varios = d.criterios.length > 1;
     $("#out").innerHTML = d.ranking.length ? `<ol class="lista">${d.ranking.map((f, i) => `
@@ -711,7 +743,7 @@ async function buscar(body, titulo, poster, peloTexto) {
         <div class="lado"><div class="nota" style="--v:${f.media}" role="img" aria-label="${T("aria_sim", {v: f.media})}"><div><span><b class="num">${f.media}%</b><small>${varios ? T("media") : esc(NOMES[d.criterios[0]])}</small></span></div></div>
           <div class="nota-lbl">${T("similaridade")}</div></div>
       </li>`).join("")}</ol><p class="credito">${T("credito")}</p>` : `<div class="card msg">${T("nenhuma")}</div>`;
-    carregarOnde(d.ranking.map(f => f.id));
+    carregarOnde([ref.id, ...d.ranking.map(f => f.id)]);
   } catch (err) {
     $("#r-sub").textContent = T("nao_deu");
     $("#out").innerHTML = `<div class="card msg err">${esc(err.message)}</div>`;
