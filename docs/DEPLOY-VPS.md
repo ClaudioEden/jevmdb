@@ -283,6 +283,17 @@ O Dokploy já tem o Traefik ocupando as portas 80 e 443 e emitindo os certificad
 
 Para copiar as fichas, use o mesmo procedimento da seção 12, trocando `docker compose cp` por `docker cp /tmp/filmes/. NOME_DO_CONTAINER:/data/filmes/` (o nome aparece em `docker ps`). Depois clique em **Restart** no Dokploy.
 
+**Carga sem SSH:** se você não tem acesso SSH à VPS, monte o catálogo pelo próprio Dokploy. Primeiro confira que o selo do site diz "Jev conectado" (as chaves precisam estar em Environment). Depois clique em **Open Terminal** na aplicação e rode:
+
+```sh
+cd /app
+node scripts/semear.js 5
+node scripts/completar-fichas.js
+ls /data/filmes | wc -l
+```
+
+O terminal abre em `/`, e o app fica em `/app`. No fim, clique em **Reload**.
+
 Para atualizar a cada `git push`, ligue o **Auto Deploy** na aba Git do serviço (ou use o webhook que o Dokploy mostra).
 
 ## 14. VPS que já tem outras coisas
