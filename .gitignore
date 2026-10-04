@@ -1,0 +1,5 @@
+data/cota.json
+data/.segredo
+node_modules/
+.env
+.DS_Store

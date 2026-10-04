@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jev Recomendador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: barra fixa no topo com o uso do Jev; card de busca em cima (abas exclusivas) que recolhe depois da busca;
+   resultados embaixo em cartões com pôster. Paleta índigo escura com verde para as notas. */
+:root{
+  --bg:#f5f5fb; --surface:#ffffff; --surface-2:#eef0fa; --line:#dfe1f0; --fg:#14142b; --muted:#5b5b7a;
+  --primary:#4338ca; --primary-fg:#ffffff; --primary-soft:#e5e6fb; --ok:#15803d; --ok-soft:#dcf5e5; --bar:#e4e5f2;
+  --danger:#b91c1c; --shadow:0 1px 2px rgba(20,20,43,.06),0 8px 24px rgba(20,20,43,.06);
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif; --r:16px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f0f23; --surface:#17172e; --surface-2:#1f1f3c; --line:#2c2c4d; --fg:#f8fafc; --muted:#a3a3c2;
+  --primary:#818cf8; --primary-fg:#0f0f23; --primary-soft:#272758; --ok:#4ade80; --ok-soft:#173a29; --bar:#2a2a48;
+  --danger:#f87171; --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f0f23; --surface:#17172e; --surface-2:#1f1f3c; --line:#2c2c4d; --fg:#f8fafc; --muted:#a3a3c2;
+  --primary:#818cf8; --primary-fg:#0f0f23; --primary-soft:#272758; --ok:#4ade80; --ok-soft:#173a29; --bar:#2a2a48;
+  --danger:#f87171; --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Barra superior com o uso */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.05rem;letter-spacing:-.01em;margin-right:auto}
+.logo{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--primary),#a855f7);color:#fff}
+.badge{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.badge.on{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.uso{display:flex;flex-wrap:wrap;gap:6px}
+.stat{display:flex;flex-direction:column;padding:4px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line);min-width:84px}
+.stat span{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.stat b{font-size:.92rem;font-weight:600}
+.stat.total{background:var(--primary-soft);border-color:transparent}
+
+.wrap{max-width:1120px;margin:0 auto;padding:24px 16px 64px}
+.hero{margin:4px 0 18px}
+.hero h1{font-size:clamp(1.6rem,3.6vw,2.3rem);line-height:1.15;letter-spacing:-.025em;margin:0 0 6px;font-weight:800}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--primary),#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{margin:0;color:var(--muted);max-width:62ch}
+
+/* Card de busca */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.search{padding:8px 20px 20px}
+.tabs{display:flex;gap:4px;padding:4px;background:var(--surface-2);border-radius:12px;width:max-content;max-width:100%;margin:12px 0 18px}
+.tab{display:flex;align-items:center;gap:8px;font:600 .92rem var(--font);color:var(--muted);background:none;border:0;padding:9px 16px;border-radius:9px;cursor:pointer;min-height:40px;transition:background .2s,color .2s}
+.tab[aria-selected="true"]{background:var(--primary);color:var(--primary-fg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.tab:not([aria-selected="true"]):hover{color:var(--fg)}
+.lbl{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin:0 0 8px;letter-spacing:.01em}
+.field{margin-bottom:18px;position:relative}
+.input{display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);transition:border-color .2s,box-shadow .2s}
+.input:focus-within{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+.input svg{color:var(--muted)}
+.input input{flex:1;min-width:0;font:inherit;padding:12px 0;border:0;background:none;color:var(--fg);outline:none}
+textarea{width:100%;font:inherit;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);min-height:120px;resize:vertical;outline:none;transition:border-color .2s,box-shadow .2s}
+textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+.hint{font-size:.84rem;color:var(--muted);margin:8px 0 0}
+.sugs{list-style:none;margin:8px 0 0;padding:6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);display:grid;gap:2px;max-height:380px;overflow:auto}
+.sugs:empty{display:none}
+.sug{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:6px 8px;border-radius:9px;cursor:pointer;min-height:56px}
+.sug:hover,.sug:focus-visible{background:var(--surface-2);outline:none}
+.sug b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sug small{color:var(--muted);font-size:.8rem;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thumb{width:40px;height:60px;border-radius:6px;object-fit:cover;background:var(--surface-2);display:grid;place-items:center;color:var(--muted);font-weight:700;font-size:.8rem;overflow:hidden}
+.pill{font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);white-space:nowrap}
+.pill.ext{background:var(--primary-soft);color:var(--primary)}
+.chosen{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px;border:1px solid var(--primary);border-radius:12px;background:var(--primary-soft)}
+.chosen .thumb{width:48px;height:72px}
+.chosen b{display:block;font-weight:700}
+.chosen small{color:var(--muted)}
+.link{font:600 .86rem var(--font);color:var(--primary);background:none;border:0;cursor:pointer;padding:8px;border-radius:8px;min-height:40px}
+.link:hover{background:var(--surface)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chip span{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;min-height:40px;border:1px solid var(--line);border-radius:999px;font-size:.92rem;font-weight:500;cursor:pointer;user-select:none;background:var(--bg);transition:background .2s,border-color .2s,color .2s}
+.chip input:checked+span{background:var(--primary);border-color:var(--primary);color:var(--primary-fg);font-weight:600}
+.chip input:focus-visible+span{outline:2px solid var(--primary);outline-offset:2px}
+.tags .chip span{font-size:.82rem;padding:5px 12px;min-height:34px}
+.tags .chip input:checked+span{background:var(--primary-soft);color:var(--fg);border-color:var(--primary)}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 1rem var(--font);padding:12px 22px;min-height:48px;border:0;border-radius:12px;background:var(--primary);color:var(--primary-fg);cursor:pointer;transition:transform .15s,filter .2s}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn.ghost{background:var(--surface-2);color:var(--fg)}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+/* Estado recolhido */
+.resumo{display:none;align-items:center;gap:14px;padding:14px 20px}
+.search-card.recolhido .search{display:none}
+.search-card.recolhido .resumo{display:flex}
+.resumo .thumb{width:40px;height:60px}
+.resumo .txt{flex:1;min-width:0}
+.resumo b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resumo small{color:var(--muted)}
+
+/* Resultados */
+.res-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px;margin:28px 0 14px}
+.res-head h2{font-size:1.3rem;letter-spacing:-.015em;margin:0;font-weight:700}
+.res-head span{color:var(--muted);font-size:.88rem}
+.msg{padding:28px 20px;text-align:center;color:var(--muted)}
+.msg.err{color:var(--danger);text-align:left}
+.lista{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.filme{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:18px;padding:16px;align-items:start}
+.poster{width:110px;aspect-ratio:2/3;border-radius:10px;object-fit:cover;background:var(--surface-2);display:grid;place-items:center;color:var(--muted);font-weight:800;font-size:1.4rem;overflow:hidden}
+.filme h3{margin:0;font-size:1.12rem;line-height:1.25;font-weight:700;letter-spacing:-.01em}
+.filme .orig{color:var(--muted);font-size:.86rem;margin-top:2px}
+.rank{font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.06em}
+.nota{display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:conic-gradient(var(--ok) calc(var(--v)*1%),var(--bar) 0)}
+.nota div{width:58px;height:58px;border-radius:50%;background:var(--surface);display:grid;place-items:center;text-align:center;line-height:1}
+.nota b{font-size:1.3rem;font-weight:800}
+.nota small{display:block;font-size:.58rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.crits{display:grid;gap:6px;margin:12px 0 4px;max-width:420px}
+.crit{display:grid;grid-template-columns:64px minmax(0,1fr) 30px;gap:10px;align-items:center;font-size:.8rem;color:var(--muted)}
+.crit b{text-align:right;color:var(--fg);font-weight:600}
+.meter{height:6px;background:var(--bar);border-radius:3px;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary),var(--ok))}
+.tagsl{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px}
+.tagsl span{font-size:.74rem;font-weight:500;background:var(--surface-2);color:var(--muted);padding:3px 9px;border-radius:999px}
+.syn{font-size:.92rem;margin:6px 0 8px;color:var(--fg);opacity:.9;max-width:70ch;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.fontes{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.8rem;color:var(--muted)}
+.fontes a{color:var(--primary);text-decoration:none;font-weight:500}
+.fontes a:hover{text-decoration:underline}
+.nota-lbl{font-size:.74rem;color:var(--muted);text-align:center;margin-top:6px;font-weight:600}
+.lado{display:flex;flex-direction:column;align-items:center}
+.onde{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:10px;font-size:.8rem;color:var(--muted)}
+.onde>b{font-weight:600;color:var(--fg)}
+.prov{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 3px;border-radius:999px;background:var(--surface-2);color:var(--fg);font-weight:500;text-decoration:none}
+.prov img{width:20px;height:20px;border-radius:5px}
+.prov small{color:var(--muted);font-size:.7rem}
+.credito{font-size:.74rem;color:var(--muted);margin:12px 0 0;text-align:right}
+.novo{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);margin-left:6px;vertical-align:middle}
+.skel{height:180px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 0,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;border:1px solid var(--line)}
+@media (prefers-reduced-motion:no-preference){
+  .skel{animation:sh 1.2s ease-in-out infinite}
+  .meter i{transition:width .4s ease}
+  .lista>li{animation:up .3s ease both}
+}
+@keyframes sh{to{background-position:-200% 0}}
+@keyframes up{from{opacity:0;transform:translateY(8px)}}
+@media (max-width:640px){
+  .filme{grid-template-columns:78px minmax(0,1fr);gap:14px}
+  .poster{width:78px}
+  .lado{grid-column:2;grid-row:1;justify-self:end}
+  .nota{width:58px;height:58px}
+  .nota div{width:46px;height:46px}
+  .nota b{font-size:1.05rem}
+  .filme .info{grid-column:1/-1}
+  .top-in{gap:8px}
+  .uso{flex-wrap:nowrap;overflow-x:auto;width:100%;scrollbar-width:none;padding-bottom:2px}
+  .uso::-webkit-scrollbar{display:none}
+  .stat{min-width:max-content;padding:3px 10px}
+  .tabs{width:100%}
+  .tab{flex:1;justify-content:center;padding:9px 10px}
+  .tab .longo{display:none}
+}
+</style></head><body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg></span>Jev Filmes <span class="badge" id="modo">…</span></div>
+    <div class="uso" aria-live="polite" aria-label="Uso do Jev">
+      <div class="stat"><span>Custo da busca</span><b class="num" id="u-custo">—</b></div>
+      <div class="stat"><span>Tokens</span><b class="num" id="u-tokens">—</b></div>
+      <div class="stat"><span>Chamadas</span><b class="num" id="u-cham">—</b></div>
+      <div class="stat"><span>Tempo</span><b class="num" id="u-tempo">—</b></div>
+      <div class="stat total" title="Somado desde que o servidor foi iniciado"><span>Total gasto</span><b class="num" id="u-total">—</b></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>Ache filmes <em>parecidos</em> com o que você gostou</h1>
+    <p>Escolha um filme e o que importa. O Jev compara a ficha dele com cada filme do catálogo e dá uma nota por critério.</p>
+  </div>
+
+  <section class="card search-card" id="busca">
+    <div class="resumo">
+      <span class="thumb" id="r-thumb"></span>
+      <div class="txt"><b id="r-tit"></b><small id="r-sub"></small></div>
+      <button class="btn ghost" id="nova" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Nova pesquisa</button>
+    </div>
+    <form class="search" id="f" autocomplete="off">
+      <div class="tabs" role="tablist" aria-label="Como você quer buscar">
+        <button class="tab" role="tab" type="button" id="tab-filme" aria-selected="true" aria-controls="p-filme"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Escolher<span class="longo">&nbsp;filme</span></button>
+        <button class="tab" role="tab" type="button" id="tab-texto" aria-selected="false" aria-controls="p-texto" tabindex="-1"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Descrever<span class="longo">&nbsp;em texto</span></button>
+      </div>
+
+      <div role="tabpanel" id="p-filme" aria-labelledby="tab-filme">
+        <div class="field">
+          <label class="lbl" for="q">Filme de referência</label>
+          <div id="escolha" hidden></div>
+          <div id="caixa">
+            <div class="input"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="text" id="q" placeholder="Digite o nome em português ou o original: Matrix, O Juiz, Duna…" role="combobox" aria-expanded="false" aria-controls="sugs" aria-autocomplete="list"></div>
+            <ul class="sugs" id="sugs" role="listbox" aria-label="Filmes encontrados"></ul>
+            <p class="hint" id="q-hint">Busco no catálogo e no IMDb. Se o filme for novo, eu junto os dados do IMDb, do Wikidata e da Wikipedia e catalogo antes de comparar.</p>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl" id="crit-lbl">Parecido em quê?</span>
+          <div class="chips" id="crit" role="group" aria-labelledby="crit-lbl"></div>
+          <p class="hint">Marque um ou mais. Com mais de um, a nota final é a média das notas de cada critério.</p>
+        </div>
+        <div class="field" id="tagbox" hidden>
+          <span class="lbl" id="tags-lbl">Estilo que importa</span>
+          <div class="chips tags" id="tags" role="group" aria-labelledby="tags-lbl"></div>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="p-texto" aria-labelledby="tab-texto" hidden>
+        <div class="field">
+          <label class="lbl" for="pedido">O que você procura?</label>
+          <textarea id="pedido" placeholder="Quero um filme parecido com O Juiz, aquele com o Stallone, no estilo ficção, futuro e distopia, e que seja da mesma época."></textarea>
+          <p class="hint">O Jev entende pelo texto qual é o filme e quais critérios você quer. Funciona com os filmes que já estão no catálogo; para um filme novo, use a aba Escolher filme.</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="go" type="submit"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg>Buscar sugestões</button>
+      </div>
+    </form>
+  </section>
+
+  <section aria-live="polite">
+    <div class="res-head" id="res-head" hidden><h2>Sugestões</h2><span id="count"></span></div>
+    <div id="out"></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nf = (n, d = 0) => Number(n).toLocaleString("pt-BR", {minimumFractionDigits: d, maximumFractionDigits: d});
+const usd = n => "US$ " + Number(n).toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: n < 0.01 ? 5 : 4});
+const iniciais = t => esc(String(t || "?").split(/\s+/).filter(w => /\w/.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase());
+const capa = (url, t, cls) => url ? `<img class="${cls}" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="${cls}" aria-hidden="true">${iniciais(t)}</span>`;
+let CAT = [], NOMES = {}, ESCOLHIDO = null, ABA = "filme";
+
+// Identificador do navegador para a trava da consulta grátis: junta características estáveis e um desenho em canvas.
+async function fingerprint() {
+  try {
+    const c = document.createElement("canvas"); c.width = 220; c.height = 40;
+    const g = c.getContext("2d"); g.textBaseline = "top"; g.font = "16px Arial"; g.fillStyle = "#f60"; g.fillRect(0, 0, 60, 20);
+    g.fillStyle = "#069"; g.fillText("Jev ✓ filmes 1995", 2, 2);
+    let gl = ""; try { const w = document.createElement("canvas").getContext("webgl"); const d = w.getExtension("WEBGL_debug_renderer_info"); gl = d ? w.getParameter(d.UNMASKED_RENDERER_WEBGL) : ""; } catch {}
+    const partes = [navigator.userAgent, navigator.language, navigator.platform, screen.width + "x" + screen.height, screen.colorDepth,
+      Intl.DateTimeFormat().resolvedOptions().timeZone, navigator.hardwareConcurrency, navigator.deviceMemory, gl, c.toDataURL()].join("|");
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(partes));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  } catch { return ""; }
+}
+const FP = fingerprint();
+
+// ---------- Uso (barra do topo) ----------
+function mostrarUso(u, total) {
+  if (u) {
+    $("#u-custo").textContent = usd(u.custo_usd);
+    $("#u-tokens").textContent = nf(u.input_tokens + u.output_tokens);
+    $("#u-cham").textContent = nf(u.chamadas);
+    $("#u-tempo").textContent = nf(u.tempo_ms / 1000, 1) + " s";
+  }
+  if (total) $("#u-total").textContent = usd(total.custo_usd);
+  if (total) $("#u-total").parentElement.title = `${nf(total.buscas)} buscas, ${nf(total.input_tokens + total.output_tokens)} tokens desde ${new Date(total.desde).toLocaleString("pt-BR")}`;
+}
+function limparUso() { ["#u-custo", "#u-tokens", "#u-cham", "#u-tempo"].forEach(s => $(s).textContent = "…"); }
+
+fetch("/api/catalogo").then(r => r.json()).then(d => {
+  CAT = d.filmes; NOMES = d.criterios;
+  const on = d.modo === "jev";
+  $("#modo").textContent = on ? `Jev conectado · ${d.modelo}` : "modo simulado";
+  $("#modo").classList.toggle("on", on);
+  $("#crit").innerHTML = Object.entries(NOMES).map(([k, n]) => `<label class="chip"><input type="checkbox" value="${k}" id="c-${k}" ${k === "estilo" ? "checked" : ""}><span>${esc(n)}</span></label>`).join("");
+  mostrarUso(null, d.uso_total);
+  if (d.ia_texto) $("#p-texto .hint").textContent = "Uma IA identifica pelo texto qual é o filme, mesmo com erro de digitação ou fora do catálogo, e o Jev entende quais critérios você quer e faz todas as comparações.";
+});
+
+// ---------- Abas exclusivas ----------
+function trocarAba(a) {
+  ABA = a;
+  for (const [k, tab, pan] of [["filme", "#tab-filme", "#p-filme"], ["texto", "#tab-texto", "#p-texto"]]) {
+    $(tab).setAttribute("aria-selected", k === a); $(tab).tabIndex = k === a ? 0 : -1; $(pan).hidden = k !== a;
+  }
+  validar();
+}
+$("#tab-filme").onclick = () => trocarAba("filme");
+$("#tab-texto").onclick = () => trocarAba("texto");
+document.querySelector(".tabs").addEventListener("keydown", e => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const prox = ABA === "filme" ? "texto" : "filme"; trocarAba(prox); $(`#tab-${prox}`).focus();
+});
+
+// ---------- Busca de filme (catálogo + IMDb) ----------
+let timer, ultimaQ = "";
+$("#q").addEventListener("input", () => {
+  clearTimeout(timer);
+  const q = $("#q").value.trim();
+  if (q.length < 2) { $("#sugs").innerHTML = ""; $("#q").setAttribute("aria-expanded", "false"); return; }
+  timer = setTimeout(() => procurar(q), 280);
+});
+$("#q").addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { e.preventDefault(); $("#sugs .sug")?.focus(); }
+  if (e.key === "Enter") { e.preventDefault(); $("#sugs .sug")?.click(); }
+});
+$("#sugs").addEventListener("keydown", e => {
+  const itens = [...document.querySelectorAll("#sugs .sug")], i = itens.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") { e.preventDefault(); itens[Math.min(i + 1, itens.length - 1)]?.focus(); }
+  if (e.key === "ArrowUp") { e.preventDefault(); (i <= 0 ? $("#q") : itens[i - 1]).focus(); }
+  if (e.key === "Escape") { $("#sugs").innerHTML = ""; $("#q").focus(); }
+});
+async function procurar(q) {
+  ultimaQ = q;
+  $("#q-hint").textContent = "Procurando…";
+  try {
+    const d = await (await fetch("/api/buscar-filme?q=" + encodeURIComponent(q))).json();
+    if (q !== ultimaQ) return;
+    const lista = d.resultados || [];
+    $("#sugs").innerHTML = lista.map((f, i) => `<li><button type="button" class="sug" role="option" data-i="${i}">
+      ${capa(f.poster, f.titulo, "thumb")}
+      <span><b>${esc(f.titulo)}${f.titulo_original && f.titulo_original !== f.titulo ? ` <small style="display:inline">· ${esc(f.titulo_original)}</small>` : ""}</b>
+      <small>${f.ano || "ano ?"}${f.atores?.length ? " · " + esc(f.atores.join(", ")) : ""}</small></span>
+      <span class="pill ${f.no_catalogo ? "" : "ext"}">${f.no_catalogo ? "no catálogo" : "IMDb"}</span></button></li>`).join("");
+    $("#sugs").querySelectorAll(".sug").forEach(b => b.onclick = () => escolher(lista[b.dataset.i]));
+    $("#q").setAttribute("aria-expanded", lista.length ? "true" : "false");
+    $("#q-hint").textContent = lista.length ? "Escolha o filme certo na lista. Se não aparecer, confira a grafia ou tente o título original."
+      : "Não achei nada com esse nome. Confira a grafia ou tente o título original.";
+  } catch { $("#q-hint").textContent = "Não consegui buscar agora. Tente de novo."; }
+}
+function escolher(f) {
+  ESCOLHIDO = f;
+  $("#sugs").innerHTML = ""; $("#q").setAttribute("aria-expanded", "false");
+  $("#caixa").hidden = true; $("#escolha").hidden = false;
+  $("#escolha").innerHTML = `<div class="chosen">${capa(f.poster, f.titulo, "thumb")}
+    <div><b>${esc(f.titulo)}</b><small>${esc(f.titulo_original && f.titulo_original !== f.titulo ? f.titulo_original + " · " : "")}${f.ano || ""}${f.atores?.length ? " · " + esc(f.atores.join(", ")) : ""}</small><br>
+    <small>${f.no_catalogo ? "Já está no catálogo." : "Novo: vou catalogar com IMDb, Wikidata e Wikipedia antes de comparar."}</small></div>
+    <button type="button" class="link" id="trocar">Trocar</button></div>`;
+  $("#trocar").onclick = () => { ESCOLHIDO = null; $("#escolha").hidden = true; $("#caixa").hidden = false; $("#q").focus(); atualizarTags(); validar(); };
+  atualizarTags(); validar();
+}
+
+function atualizarTags() {
+  const f = ESCOLHIDO?.id && CAT.find(x => x.id === ESCOLHIDO.id);
+  $("#tagbox").hidden = !(f && f.estilo?.length && $("#c-estilo")?.checked);
+  if (!f || $("#tags").dataset.id === f.id) return;
+  $("#tags").dataset.id = f.id;
+  $("#tags").innerHTML = f.estilo.map(t => `<label class="chip"><input type="checkbox" value="${esc(t)}" checked><span>${esc(t)}</span></label>`).join("");
+}
+$("#crit").addEventListener("change", () => { atualizarTags(); validar(); });
+$("#pedido").addEventListener("input", validar);
+function criteriosMarcados() { return [...document.querySelectorAll("#crit input:checked")].map(i => i.value); }
+function validar() {
+  $("#go").disabled = ABA === "filme" ? !(ESCOLHIDO && criteriosMarcados().length) : $("#pedido").value.trim().length < 5;
+}
+validar();
+
+// ---------- Recolher / Nova pesquisa ----------
+function recolher(titulo, sub, poster) {
+  $("#r-thumb").outerHTML = capa(poster, titulo, "thumb").replace(/class="thumb"/, 'class="thumb" id="r-thumb"');
+  $("#r-tit").textContent = titulo; $("#r-sub").textContent = sub;
+  $("#busca").classList.add("recolhido");
+}
+$("#nova").onclick = () => {
+  $("#busca").classList.remove("recolhido");
+  (ABA === "filme" ? (ESCOLHIDO ? $("#trocar") : $("#q")) : $("#pedido")).focus();
+  window.scrollTo({top: 0, behavior: "smooth"});
+};
+
+// ---------- Onde assistir (carrega depois dos resultados) ----------
+async function carregarOnde(ids) {
+  let dados = {};
+  try { dados = await (await fetch("/api/onde-assistir?ids=" + ids.map(encodeURIComponent).join(","))).json(); } catch {}
+  document.querySelectorAll(".onde[data-id]").forEach(el => {
+    const o = dados[el.dataset.id], span = el.querySelector("span");
+    if (!o) { span.textContent = "sem informação"; return; }
+    if (!o.plataformas.length) { span.textContent = "não está em streaming no Brasil agora"; return; }
+    span.outerHTML = o.plataformas.slice(0, 6).map(p => `<span class="prov">${p.logo ? `<img src="${esc(p.logo)}" alt="" loading="lazy">` : ""}${esc(p.nome)} <small>${esc(p.tipo)}</small></span>`).join("");
+  });
+}
+
+// ---------- Busca de sugestões ----------
+$("#f").addEventListener("submit", async e => {
+  e.preventDefault();
+  if ($("#go").disabled) return;
+  const body = ABA === "filme"
+    ? {filme: ESCOLHIDO.id || "", imdb: ESCOLHIDO.id ? "" : ESCOLHIDO.imdb, criterios: criteriosMarcados(),
+       foco: $("#tagbox").hidden ? [] : [...document.querySelectorAll("#tags input:checked")].map(i => i.value)}
+    : {pedido: $("#pedido").value, filme: "", criterios: []};
+  const titulo = ABA === "filme" ? ESCOLHIDO.titulo : "Pedido em texto";
+  recolher(titulo, "Consultando o Jev…", ABA === "filme" ? ESCOLHIDO.poster : null);
+  $("#res-head").hidden = false; $("#count").textContent = "";
+  $("#out").innerHTML = `<div class="lista">${'<div class="skel"></div>'.repeat(3)}</div>`;
+  limparUso();
+  $("#go").disabled = true;
+  try {
+    const r = await fetch("/api/recomendar", {method: "POST", headers: {"Content-Type": "application/json", "X-Jev-FP": await FP}, body: JSON.stringify(body)});
+    const d = await r.json();
+    mostrarUso(d.uso || {custo_usd: 0, input_tokens: 0, output_tokens: 0, chamadas: 0, tempo_ms: 0}, d.uso_total);
+    if (r.status === 402) {
+      $("#r-sub").textContent = "Consulta grátis já usada";
+      $("#out").innerHTML = `<div class="card msg"><b>Você já usou sua consulta grátis.</b><br>Em breve: cadastre seu telefone e receba um código pelo WhatsApp para ganhar 4 rodadas por mês.</div>`;
+      return;
+    }
+    if (!r.ok) throw new Error(d.erro || "Erro ao consultar");
+    const ref = d.referencia;
+    if (d.importado) CAT.push(ref);
+    if (ABA === "filme" && !ESCOLHIDO.id) { ESCOLHIDO = {...ESCOLHIDO, id: ref.id, no_catalogo: true}; }
+    recolher(`${ref.titulo_br} (${ref.ano})`, `Critérios: ${d.criterios.map(c => NOMES[c]).join(", ")}${d.importado ? " · catalogado agora" : ""}${d.entendido?.ia ? " · filme identificado pela IA" : ""}`, ref.poster);
+    $("#count").textContent = `top ${d.ranking.length} de ${d.candidatos_avaliados} avaliados`;
+    const varios = d.criterios.length > 1;
+    $("#out").innerHTML = d.ranking.length ? `<ol class="lista">${d.ranking.map((f, i) => `
+      <li class="card filme">
+        ${capa(f.poster, f.titulo_br, "poster")}
+        <div class="info">
+          <div class="rank">#${i + 1}</div>
+          <h3>${esc(f.titulo_br)}</h3>
+          <div class="orig">${esc(f.titulo_original)} · ${f.ano}${f.diretor ? " · " + esc(f.diretor) : ""}${f.nota_imdb ? ` · IMDb ${nf(f.nota_imdb, 1)}` : ""}${f.nota_tmdb ? ` · TMDB ${nf(f.nota_tmdb, 1)}` : ""}</div>
+          ${varios ? `<div class="crits">${d.criterios.map(c => `<div class="crit"><span>${esc(NOMES[c])}</span><div class="meter"><i style="width:${f.notas[c]}%"></i></div><b class="num">${f.notas[c]}</b></div>`).join("")}</div>` : ""}
+          <div class="tagsl">${(f.estilo || []).slice(0, 5).map(t => `<span>${esc(t)}</span>`).join("")}</div>
+          <p class="syn">${esc(f.sinopse)}</p>
+          <div class="fontes">${(f.fontes || [{nome: "Fonte", url: f.fonte}]).concat(f.imdb && !(f.fontes || []).some(x => x.nome === "IMDb") ? [{nome: "IMDb", url: `https://www.imdb.com/title/${f.imdb}/`}] : [])
+            .filter(x => x.url).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.nome)}</a>`).join("")}</div>
+          <div class="onde" data-id="${esc(f.id)}"><b>Onde assistir:</b> <span>procurando…</span></div>
+        </div>
+        <div class="lado"><div class="nota" style="--v:${f.media}" role="img" aria-label="${f.media}% de similaridade"><div><span><b class="num">${f.media}%</b><small>${varios ? "média" : esc(NOMES[d.criterios[0]])}</small></span></div></div>
+          <div class="nota-lbl">similaridade</div></div>
+      </li>`).join("")}</ol><p class="credito">Onde assistir: dados JustWatch</p>` : `<div class="card msg">Nenhuma sugestão.</div>`;
+    carregarOnde(d.ranking.map(f => f.id));
+  } catch (err) {
+    $("#r-sub").textContent = "Não deu certo";
+    $("#out").innerHTML = `<div class="card msg err">${esc(err.message)}</div>`;
+  } finally { validar(); }
+});
+</script>
+</body></html>
