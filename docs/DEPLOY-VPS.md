@@ -75,10 +75,17 @@ node -v   # tem que mostrar v22.x
 git clone https://github.com/ClaudioEden/jevmdb.git /opt/jevmdb
 
 # Os dados ficam fora da pasta do código, para o "git pull" nunca brigar com fichas novas.
-mkdir -p /var/lib/jevmdb
-cp -r /opt/jevmdb/data/filmes /var/lib/jevmdb/
+mkdir -p /var/lib/jevmdb/filmes
 chown -R jev:jev /var/lib/jevmdb
 ```
+
+As fichas dos filmes não ficam no repositório público (têm dados do TMDB). Copie as do Mac, rodando **no Mac**, dentro da pasta do projeto:
+
+```bash
+rsync -avz data/filmes/ root@IP_DA_VPS:/var/lib/jevmdb/filmes/
+```
+
+Depois, na VPS: `chown -R jev:jev /var/lib/jevmdb`. Se preferir montar o catálogo do zero na VPS, use o comando "Aumentar o catálogo" da tabela mais abaixo.
 
 ## 5. Criar o .env com as chaves
 
