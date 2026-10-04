@@ -416,8 +416,9 @@ function idiomaInicial() {
   const q = new URLSearchParams(location.search).get("lang");
   if (TXT[q]) return q;
   try { const s = localStorage.getItem("jevmdb_lang"); if (TXT[s]) return s; } catch {}
-  const n = (navigator.language || "pt").slice(0, 2);
-  return TXT[n] ? n : "pt";
+  // Sem escolha anterior: o primeiro idioma da lista do navegador que o site tem (ex.: fr, en → en); senão, português.
+  const lista = navigator.languages?.length ? navigator.languages : [navigator.language || "pt"];
+  return lista.map(l => String(l).slice(0, 2).toLowerCase()).find(l => TXT[l]) || "pt";
 }
 const LANG = idiomaInicial(), LOCALE = LOCALES[LANG];
 // T("chave", {var: valor}); aceita chave com ponto, ex.: "crit.estilo"
