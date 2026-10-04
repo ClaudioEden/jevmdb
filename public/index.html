@@ -108,9 +108,24 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
 .r-det .orig{color:var(--muted);font-size:.86rem}
 .r-det .elenco{font-size:.86rem;margin-top:4px}
 .r-det .elenco span{color:var(--muted)}
-.r-det .syn{-webkit-line-clamp:3;margin:8px 0 6px}
-.r-det .syn.aberta{-webkit-line-clamp:unset;display:block}
-.r-det .mais{font:600 .8rem var(--font);color:var(--primary);background:none;border:0;padding:0;cursor:pointer}
+.r-det .syn{display:block;-webkit-line-clamp:unset;margin:8px 0 6px}
+/* Card da referência semi-recolhido: na altura do pôster, com o texto sumindo num fade */
+.r-corpo{position:relative}
+.resumo.com-ficha .r-corpo{max-height:144px;overflow:hidden}
+.resumo.com-ficha .r-corpo::after{content:"";position:absolute;left:0;right:0;bottom:0;height:64px;background:linear-gradient(to bottom,transparent,var(--surface));pointer-events:none}
+.resumo.com-ficha .r-corpo.aberto{max-height:none}
+.resumo.com-ficha .r-corpo.aberto::after,.resumo.com-ficha .r-corpo.cabe::after{display:none}
+.r-abrir{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font:600 .84rem var(--font);color:var(--primary);background:none;border:0;padding:6px 0;cursor:pointer;min-height:36px}
+.r-abrir svg{width:16px;height:16px;transition:transform .2s}
+.r-abrir[aria-expanded="true"] svg{transform:rotate(180deg)}
+@media (max-width:640px){.resumo.com-ficha .r-corpo{max-height:108px}}
+/* "Sentiu falta de algum filme?" */
+.falta{margin:18px 0 0;padding:16px 18px}
+.falta p{margin:0 0 10px;font-weight:600}
+.falta form{display:flex;flex-wrap:wrap;gap:8px}
+.falta input{flex:1;min-width:200px;font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);outline:none}
+.falta input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+.falta .btn{min-height:42px;padding:8px 18px}
 @media (max-width:640px){.resumo{flex-wrap:wrap}.resumo.com-ficha .thumb{width:72px;height:108px}#nova{width:100%}}
 
 /* Resultados */
@@ -220,7 +235,8 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
   <section class="card search-card" id="busca">
     <div class="resumo">
       <span class="thumb" id="r-thumb"></span>
-      <div class="txt"><div class="r-ref" id="r-ref" hidden data-i18n="ref_lbl"></div><b id="r-tit"></b><small id="r-sub"></small><div class="r-det" id="r-det" hidden></div></div>
+      <div class="txt"><div class="r-corpo" id="r-corpo"><div class="r-ref" id="r-ref" hidden data-i18n="ref_lbl"></div><b id="r-tit"></b><small id="r-sub"></small><div class="r-det" id="r-det" hidden></div></div>
+        <button type="button" class="r-abrir" id="r-abrir" hidden aria-expanded="false" aria-controls="r-corpo"><span></span><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button></div>
       <button class="btn ghost" id="nova" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span data-i18n="nova"></span></button>
     </div>
     <form class="search" id="f" autocomplete="off">
@@ -334,6 +350,7 @@ const TXT = {
       fora_catalogo: "O filme do pedido ainda não está no catálogo. Use a aba Escolher filme para procurar e catalogar.", sem_referencia: "Informe o filme de referência ou escreva um pedido.",
       avaliacao_invalida: "Não consegui registrar a avaliação." },
     elenco: "Elenco", ler_mais: "ler mais", ler_menos: "ler menos",
+    ficha_abrir: "Ver ficha completa", ficha_fechar: "Recolher ficha", ampliado: "{n} filmes novos no catálogo", falta_titulo: "Sentiu falta de algum filme nesta lista?", falta_ph: "Diga qual, e a gente inclui no catálogo", falta_ok: "Obrigado! Vamos incluir esse filme no catálogo em breve.",
     lang_nome: "Português",
   },
   en: {
@@ -371,6 +388,7 @@ const TXT = {
       fora_catalogo: "That movie isn't in the catalog yet. Use the Pick a movie tab to search and add it.", sem_referencia: "Pick a reference movie or write a request.",
       avaliacao_invalida: "Couldn't save your rating." },
     elenco: "Cast", ler_mais: "read more", ler_menos: "read less",
+    ficha_abrir: "Show full details", ficha_fechar: "Hide details", ampliado: "{n} new movies added to the catalog", falta_titulo: "Missing a movie from this list?", falta_ph: "Tell us which one and we'll add it to the catalog", falta_ok: "Thanks! We'll add that movie to the catalog soon.",
     lang_nome: "English",
   },
   es: {
@@ -408,6 +426,7 @@ const TXT = {
       fora_catalogo: "Esa película aún no está en el catálogo. Usa la pestaña Elegir película para buscarla y agregarla.", sem_referencia: "Elige una película de referencia o escribe un pedido.",
       avaliacao_invalida: "No pude registrar tu calificación." },
     elenco: "Reparto", ler_mais: "leer más", ler_menos: "leer menos",
+    ficha_abrir: "Ver ficha completa", ficha_fechar: "Ocultar ficha", ampliado: "{n} películas nuevas en el catálogo", falta_titulo: "¿Echaste en falta alguna película en esta lista?", falta_ph: "Dinos cuál y la agregamos al catálogo", falta_ok: "¡Gracias! Agregaremos esa película al catálogo pronto.",
     lang_nome: "Español",
   },
 };
@@ -580,20 +599,21 @@ function recolher(titulo, sub, poster, ref) {
   // Com a ficha da referência: mostra os dados do filme, para a pessoa conferir se a comparação faz sentido.
   $(".resumo").classList.toggle("com-ficha", !!ref);
   $("#r-ref").hidden = !ref; $("#r-det").hidden = !ref;
-  if (!ref) { $("#r-det").innerHTML = ""; return; }
+  if (!ref) { $("#r-det").innerHTML = ""; $("#r-abrir").hidden = true; $("#r-corpo").classList.remove("aberto", "cabe"); return; }
   const fontes = (ref.fontes || [{nome: T("fonte"), url: ref.fonte}]).concat(ref.imdb && !(ref.fontes || []).some(x => x.nome === "IMDb") ? [{nome: "IMDb", url: `https://www.imdb.com/title/${ref.imdb}/`}] : []);
   $("#r-det").innerHTML = `
     <div class="orig">${esc(ref.titulo_original)} · ${ref.ano || ""}${ref.diretor ? " · " + esc(ref.diretor) : ""}${ref.nota_imdb ? ` · IMDb ${nf(ref.nota_imdb, 1)}` : ""}${ref.nota_tmdb ? ` · TMDB ${nf(ref.nota_tmdb, 1)}` : ""}</div>
     ${ref.elenco?.length ? `<div class="elenco"><span>${T("elenco")}:</span> ${esc(ref.elenco.slice(0, 4).join(", "))}</div>` : ""}
     <div class="tagsl">${[...(ref.generos || []).slice(0, 3), ...(ref.estilo || []).slice(0, 5)].filter((t, i, a) => a.findIndex(x => x.toLowerCase() === t.toLowerCase()) === i).map(t => `<span>${esc(t)}</span>`).join("")}</div>
-    ${ref.sinopse ? `<p class="syn" id="r-syn">${esc(ref.sinopse)}</p><button type="button" class="mais" id="r-mais">${T("ler_mais")}</button>` : ""}
+    ${ref.sinopse ? `<p class="syn">${esc(ref.sinopse)}</p>` : ""}
     <div class="fontes" style="margin-top:6px">${fontes.filter(x => x.url).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.nome)}</a>`).join("")}</div>
     <div class="onde" data-id="${esc(ref.id)}"><b>${T("onde_lbl")}</b> <span>${T("procurando")}</span></div>`;
-  const syn = $("#r-syn");
-  if (syn) {
-    requestAnimationFrame(() => { if (syn.scrollHeight <= syn.clientHeight + 2) $("#r-mais").hidden = true; });
-    $("#r-mais").onclick = () => { const a = syn.classList.toggle("aberta"); $("#r-mais").textContent = a ? T("ler_menos") : T("ler_mais"); };
-  }
+  // Semi-recolhido: mostra até a altura do pôster; o botão abre a ficha completa.
+  const corpo = $("#r-corpo"), botao = $("#r-abrir");
+  const marcar = aberto => { corpo.classList.toggle("aberto", aberto); botao.setAttribute("aria-expanded", aberto); botao.querySelector("span").textContent = aberto ? T("ficha_fechar") : T("ficha_abrir"); };
+  marcar(false);
+  requestAnimationFrame(() => { const cabe = corpo.scrollHeight <= corpo.clientHeight + 2; corpo.classList.toggle("cabe", cabe); botao.hidden = cabe; });
+  botao.onclick = () => marcar(!corpo.classList.contains("aberto"));
 }
 $("#nova").onclick = () => {
   $("#busca").classList.remove("recolhido");
@@ -693,6 +713,21 @@ $("#av-coment").addEventListener("submit", async e => {
   $("#av-coment").hidden = true; $("#av-ok").hidden = false;
 });
 
+// ---------- "Sentiu falta de algum filme?" (abaixo da lista) ----------
+function mostrarFalta(buscaId) {
+  $("#out").insertAdjacentHTML("beforeend", `<section class="card falta" id="falta">
+    <p>${T("falta_titulo")}</p>
+    <form id="falta-f"><input type="text" id="falta-t" maxlength="120" placeholder="${esc(T("falta_ph"))}" aria-label="${esc(T("falta_titulo"))}"><button class="btn" type="submit">${T("av_enviar")}</button></form>
+  </section>`);
+  $("#falta-f").addEventListener("submit", async e => {
+    e.preventDefault();
+    const texto = $("#falta-t").value.trim();
+    if (texto.length < 2) return;
+    try { await api("/api/sentiu-falta", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({texto, busca_id: buscaId})}); } catch {}
+    $("#falta-f").outerHTML = `<p class="hint" style="margin:0">${T("falta_ok")}</p>`;
+  });
+}
+
 // ---------- Busca de sugestões ----------
 $("#f").addEventListener("submit", e => {
   e.preventDefault();
@@ -725,7 +760,7 @@ async function buscar(body, titulo, poster, peloTexto) {
     if (!peloTexto && !ESCOLHIDO.id) { ESCOLHIDO = {...ESCOLHIDO, id: ref.id, no_catalogo: true}; }
     if (peloTexto && TX.cand && !TX.cand.id) TX.cand = {...TX.cand, id: ref.id, no_catalogo: true};
     recolher(`${ref.titulo_br} (${ref.ano})`, T("criterios_sub", {c: d.criterios.map(c => NOMES[c]).join(", ")}) + (d.importado ? " · " + T("catalogado_agora") : "") + (peloTexto ? " · " + T("pelo_texto") : ""), ref.poster, ref);
-    $("#count").textContent = T("count", {n: d.ranking.length, t: d.candidatos_avaliados});
+    $("#count").textContent = T("count", {n: d.ranking.length, t: d.candidatos_avaliados}) + (d.ampliado ? " · " + T("ampliado", {n: d.ampliado}) : "");
     const varios = d.criterios.length > 1;
     $("#out").innerHTML = d.ranking.length ? `<ol class="lista">${d.ranking.map((f, i) => `
       <li class="card filme">
@@ -744,6 +779,7 @@ async function buscar(body, titulo, poster, peloTexto) {
         <div class="lado"><div class="nota" style="--v:${f.media}" role="img" aria-label="${T("aria_sim", {v: f.media})}"><div><span><b class="num">${f.media}%</b><small>${varios ? T("media") : esc(NOMES[d.criterios[0]])}</small></span></div></div>
           <div class="nota-lbl">${T("similaridade")}</div></div>
       </li>`).join("")}</ol><p class="credito">${T("credito")}</p>` : `<div class="card msg">${T("nenhuma")}</div>`;
+    mostrarFalta(d.busca_id);
     carregarOnde([ref.id, ...d.ranking.map(f => f.id)]);
   } catch (err) {
     $("#r-sub").textContent = T("nao_deu");

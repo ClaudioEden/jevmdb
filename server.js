@@ -10,7 +10,7 @@ const path = require("path");
 const store = require("./lib/store");
 const { systemOne, novaMedicao, MOCK, MODEL } = require("./lib/jev");
 const { recomendar, CRITERIOS, MAX_RESULTADOS } = require("./lib/recomendar");
-const { importar, importarPorImdb, buscarCandidatos, buscarImdb, ondeAssistir } = require("./lib/importar");
+const { importar, importarPorImdb, buscarCandidatos, buscarImdb, ondeAssistir, importarVizinhos, importarPedido } = require("./lib/importar");
 const gemini = require("./lib/gemini");
 const cota = require("./lib/cota");
 const buscas = require("./lib/buscas");
@@ -31,6 +31,10 @@ function fichaPublica(f, lang) {
     poster: f.poster || null, imdb: f.imdb || null, nota_imdb: f.nota_imdb ?? null, nota_tmdb: f.nota_tmdb ?? null,
   };
 }
+
+// Abaixo disto, a busca primeiro amplia o catálogo com os vizinhos da referência (JEV_MIN_CATALOGO, padrão 40).
+const MIN_CATALOGO = Number(process.env.JEV_MIN_CATALOGO || 40);
+const PEDIDOS = path.join(process.env.JEV_DADOS || path.join(__dirname, "data"), "pedidos-filmes.jsonl");
 
 // Total gasto desde que o servidor subiu, para conferir com o saldo da TypeSafe.
 const TOTAL = { buscas: 0, chamadas: 0, input_tokens: 0, output_tokens: 0, custo_usd: 0, desde: new Date().toISOString() };
@@ -170,9 +174,14 @@ async function handleRecomendar(body, med, lang = "pt") {
   let crits = criterios.filter(c => CRITERIOS[c]);
   if (!crits.length) crits = entendido?.criterios?.length ? entendido.criterios : ["estilo"];
 
+  // Catálogo pequeno: antes de comparar, traz na hora os filmes que o TMDB considera vizinhos da referência.
+  let ampliado = 0;
+  if (store.todos().length - 1 < MIN_CATALOGO) ampliado = await importarVizinhos(ref, med, 15).catch(() => 0);
   const r = await recomendar(ref, crits, foco, med);
+  // Em segundo plano, o catálogo continua crescendo com os vizinhos (para as próximas buscas).
+  importarVizinhos(ref, null, 20).catch(e => console.error("Vizinhos:", e.message));
   return {
-    referencia: fichaPublica(ref, lang), importado, entendido, criterios: crits,
+    referencia: fichaPublica(ref, lang), importado, entendido, criterios: crits, ampliado,
     candidatos_avaliados: r.candidatos_avaliados,
     ranking: r.ranking.map(({ filme: f, notas, media }) => ({ ...fichaPublica(f, lang), notas, media })),
   };
@@ -227,6 +236,18 @@ http.createServer(async (req, res) => {
         const uso = med.fechar();
         return send(res, e instanceof ErroUsuario ? 400 : 502, { erro: e.message, codigo: e.codigo || "erro", uso, uso_total: somar(uso) });
       }
+    }
+    if (req.method === "POST" && url.pathname === "/api/sentiu-falta") {
+      // "Senti falta deste filme": grava o pedido e tenta catalogar em segundo plano.
+      let raw = ""; for await (const c of req) raw += c;
+      const { texto = "", busca_id = null } = JSON.parse(raw || "{}");
+      const t = String(texto).trim().slice(0, 120);
+      if (t.length < 2) return send(res, 400, { erro: "Pedido vazio", codigo: "pedido_vazio" });
+      const registrar = extra => { try { fs.appendFileSync(PEDIDOS, JSON.stringify({ em: new Date().toISOString(), texto: t, busca_id, idioma: idiomaDe(req, url), ...extra }) + "\n"); } catch (e) { console.error(e.message); } };
+      registrar({ status: "recebido" });
+      importarPedido(t, null).then(f => registrar({ status: f ? "catalogado" : "nao_encontrado", id: f?.id || null }))
+        .catch(e => registrar({ status: "erro", erro: e.message }));
+      return send(res, 200, { ok: true });
     }
     if (req.method === "POST" && url.pathname === "/api/avaliar") {
       // Nota de 1 a 10 estrelas (e comentário opcional) para uma busca feita.

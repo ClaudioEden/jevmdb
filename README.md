@@ -47,6 +47,7 @@ Sem chave, ou com `JEV_MOCK=1`, roda em **modo simulado**: as notas são uma heu
 | `OMDB_API_KEY` | (vazio) | Opcional. Nota e dados do IMDb pelo OMDb (chave grátis em omdbapi.com) |
 | `GEMINI_API_KEY` | (vazio) | Opcional. Na aba de texto, o Gemini identifica o filme (mesmo com erro de digitação ou fora do catálogo) |
 | `GEMINI_MODEL` | gemini-flash-latest | Modelo do Gemini (se estiver sobrecarregado, tenta gemini-flash-lite-latest e gemini-2.5-flash; se todos falharem, o Jev escolhe no catálogo) |
+| `JEV_MIN_CATALOGO` | 40 | Com menos filmes que isso, a busca primeiro traz do TMDB os filmes vizinhos da referência (na hora). Acima disso, os vizinhos entram em segundo plano depois de cada busca |
 | `JEV_COTA_LIMITE_IP` | 5 | Consultas grátis por IP em 24 h antes de o IP bloquear sozinho |
 | `JEV_SEGREDO` | gerado em `data/.segredo` | Chave que assina o cookie do visitante |
 
@@ -71,6 +72,9 @@ O site é trilíngue: português do Brasil (padrão), inglês americano e espanh
 
 ## Buscas feitas e avaliação
 Cada resultado exibido é gravado em `data/buscas-feitas/<id>.json` (sem dados do visitante) com prazo de **60 dias**. Abaixo do card de busca aparece "muito ruim ★★★★★★★★★★ excelente"; a nota é opcional e, se for **menor que 7**, o prazo cai para **15 dias**. Depois da nota aparece um campo para comentário opcional. O servidor apaga as buscas vencidas ao subir e a cada 24 h; `node scripts/limpar-buscas.js` faz o mesmo por cron.
+
+## Catálogo que cresce sozinho
+Depois de cada busca, o servidor traz em segundo plano até 20 filmes que o TMDB lista como "recomendados" e "parecidos" com a referência (uma vez a cada 30 dias por filme). Se o catálogo tiver menos de `JEV_MIN_CATALOGO` filmes, isso acontece antes da comparação. Abaixo da lista há a caixa "Sentiu falta de algum filme?": o pedido vai para `data/pedidos-filmes.jsonl` e o filme é catalogado na hora, em segundo plano.
 
 ## Onde assistir
 Vem do TMDB (dados do JustWatch) para o país do idioma (Brasil, EUA ou México) e fica guardado na ficha por 7 dias. A tela carrega depois dos resultados, sem atrasar a busca.
