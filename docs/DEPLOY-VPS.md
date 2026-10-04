@@ -180,9 +180,12 @@ Abra **https://jevmdb.w3pd.com.br**. Se o certificado demorar, veja o log com `j
 
 ## 8. Testar no ar
 
-- [ ] A página abre com o selo "Jev conectado".
-- [ ] Uma busca pela aba **Escolher filme** traz pôster, % de similaridade e onde assistir.
-- [ ] Uma busca pela aba **Descrever em texto** identifica o filme.
+- [ ] A página abre com o selo "Jev conectado" e as bandeiras dos outros dois idiomas no topo.
+- [ ] O catálogo veio junto: `curl -s 127.0.0.1:3000/api/catalogo | grep -o '"id"' | wc -l` mostra uns 200 filmes (se der perto de 0, faltou copiar as fichas).
+- [ ] Uma busca pela aba **Escolher filme** traz pôster, % de similaridade e onde assistir, e o card de cima mostra a ficha do filme de referência.
+- [ ] A aba **Descrever em texto** sugere o filme e pede confirmação; "Não é esse" pede mais detalhes.
+- [ ] As estrelas aparecem abaixo do card; depois de clicar, aparece a caixa de comentário, e um arquivo novo surge em `buscas-feitas/`.
+- [ ] As bandeiras trocam a tela e os títulos para inglês e espanhol.
 - [ ] A **segunda** busca no mesmo navegador volta "Você já usou sua consulta grátis".
 - [ ] No celular (4G, fora do Wi-Fi), a primeira busca funciona.
 
@@ -273,7 +276,7 @@ O Dokploy já tem o Traefik ocupando as portas 80 e 443 e emitindo os certificad
 1. No Dokploy: **Create Project → Create Service → Application**.
 2. **Source**: GitHub (ou "Git" com `https://github.com/ClaudioEden/jevmdb.git`), branch `main`.
 3. **Build Type**: `Dockerfile` (o caminho padrão `./Dockerfile` serve).
-4. **Environment**: cole as variáveis do `.env` (as quatro chaves, `JEV_COTA_ANONIMA=1`, `JEV_COTA_LIMITE_IP=5`). As de produção (`HOST`, `PORT`, `JEV_DADOS`, `JEV_ATRAS_DE_PROXY`) já vêm no Dockerfile.
+4. **Environment**: cole as variáveis do `.env`, sem aspas em volta dos valores (as quatro chaves, `JEV_COTA_ANONIMA=1`, `JEV_COTA_LIMITE_IP=5`). As de produção (`HOST`, `PORT`, `JEV_DADOS`, `JEV_ATRAS_DE_PROXY`) já vêm no Dockerfile.
 5. **Advanced → Volumes / Mounts**: crie um *Volume Mount* com o nome `jevmdb-dados` e o caminho no container `/data`. Sem isso, as fichas e a trava somem a cada novo deploy.
 6. **Domains**: host `jevmdb.w3pd.com.br`, path `/`, **Container Port `3000`**, HTTPS ligado, certificado **Let's Encrypt**.
 7. **Deploy**. Depois de o DNS (seção 1) apontar para a VPS, abra https://jevmdb.w3pd.com.br.
