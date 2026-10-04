@@ -7,3 +7,4 @@ data/buscas-feitas/
 *.textClipping
 data/filmes/
 catalogo.json
+data/avaliacoes.jsonl
