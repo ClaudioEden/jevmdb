@@ -16,7 +16,7 @@ Como funciona, em quatro partes:
 
 3. Comparação. Para cada filme candidato, o Jev recebe as duas fichas e uma pergunta de nota de 0 a 4 por critério (estilo, atores, ano, enredo), com a descrição de cada nível. Até o ano é comparado pelo Jev, com faixas de "mesmo ano" a "mais de 30 anos de diferença". A nota vira porcentagem de similaridade.
 
-4. Texto livre. Na aba "descreva o que você quer", o Gemini Flash só identifica o filme, mesmo com erro de digitação ("obvilium com o Tom Cruise" vira Oblivion). Os critérios e todas as notas continuam com o Jev.
+4. Texto livre. Na aba "descreva o que você quer", o Gemini Flash só identifica o filme, mesmo com erro de digitação ("obvilium com o Tom Cruise" vira Oblivion), e a pessoa confirma antes da busca. Se não for o filme certo, ela dá mais detalhes e o app tenta de novo, sem repetir o que já foi recusado. Os critérios e todas as notas continuam com o Jev.
 
 Números de uma busca típica: 60 comparações, cerca de 50 mil tokens, de 2 a 3 segundos, US$ 0,002. O Jev cobra US$ 42 por bilhão de tokens de entrada.
 
@@ -24,7 +24,7 @@ Para a consulta grátis sem cadastro, a trava combina o fingerprint do navegador
 
 Stack: Node puro, sem nenhuma dependência, fichas em arquivos JSON, rodando numa VPS com Caddy na frente. O próximo passo é Postgres e cadastro por WhatsApp.
 
-O código está aberto: https://github.com/ClaudioEden/jev-filmes
+O código está aberto: https://github.com/ClaudioEden/jevmdb
 Para testar: https://jev-filmes.w3pd.com.br
 
 #IA #NodeJS #DesenvolvimentoDeSoftware #Recomendação

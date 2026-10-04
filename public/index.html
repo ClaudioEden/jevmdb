@@ -136,6 +136,10 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
 .prov img{width:20px;height:20px;border-radius:5px}
 .prov small{color:var(--muted);font-size:.7rem}
 .credito{font-size:.74rem;color:var(--muted);margin:12px 0 0;text-align:right}
+.alts{display:grid;gap:2px;margin:8px 0 0;padding:0;list-style:none}
+.alts .sug{min-height:48px}
+.alts .thumb{width:32px;height:48px}
+.sub-lbl{font-size:.8rem;color:var(--muted);margin:14px 0 6px}
 .novo{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);margin-left:6px;vertical-align:middle}
 .skel{height:180px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 0,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;border:1px solid var(--line)}
 @media (prefers-reduced-motion:no-preference){
@@ -219,12 +223,18 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
         <div class="field">
           <label class="lbl" for="pedido">O que você procura?</label>
           <textarea id="pedido" placeholder="Quero um filme parecido com O Juiz, aquele com o Stallone, no estilo ficção, futuro e distopia, e que seja da mesma época."></textarea>
-          <p class="hint">O Jev entende pelo texto qual é o filme e quais critérios você quer. Funciona com os filmes que já estão no catálogo; para um filme novo, use a aba Escolher filme.</p>
+          <p class="hint" id="t-hint">Primeiro eu identifico o filme e você confirma. Só depois o Jev compara.</p>
         </div>
+        <div id="t-mais" class="field" hidden>
+          <label class="lbl" for="extra">Conte mais detalhes</label>
+          <textarea id="extra" style="min-height:80px" placeholder="Um ator, o ano, o diretor, uma cena marcante…"></textarea>
+          <div class="actions"><button class="btn" type="button" id="t-retentar">Tentar de novo</button></div>
+        </div>
+        <div id="t-confirma" class="field" hidden></div>
       </div>
 
       <div class="actions">
-        <button class="btn" id="go" type="submit"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg>Buscar sugestões</button>
+        <button class="btn" id="go" type="submit"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg><span id="go-txt">Buscar sugestões</span></button>
       </div>
     </form>
   </section>
@@ -243,6 +253,7 @@ const usd = n => "US$ " + Number(n).toLocaleString("pt-BR", {minimumFractionDigi
 const iniciais = t => esc(String(t || "?").split(/\s+/).filter(w => /\w/.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase());
 const capa = (url, t, cls) => url ? `<img class="${cls}" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="${cls}" aria-hidden="true">${iniciais(t)}</span>`;
 let CAT = [], NOMES = {}, ESCOLHIDO = null, ABA = "filme";
+let TX = {cand: null, alts: [], rejeitados: [], criterios: []}; // estado da aba de texto
 
 // Identificador do navegador para a trava da consulta grátis: junta características estáveis e um desenho em canvas.
 async function fingerprint() {
@@ -261,6 +272,7 @@ const FP = fingerprint();
 
 // ---------- Uso (barra do topo) ----------
 function mostrarUso(u, total) {
+  if (document.querySelector(".uso").hidden) return;
   if (u) {
     $("#u-custo").textContent = usd(u.custo_usd);
     $("#u-tokens").textContent = nf(u.input_tokens + u.output_tokens);
@@ -278,8 +290,9 @@ fetch("/api/catalogo").then(r => r.json()).then(d => {
   $("#modo").textContent = on ? `Jev conectado · ${d.modelo}` : "modo simulado";
   $("#modo").classList.toggle("on", on);
   $("#crit").innerHTML = Object.entries(NOMES).map(([k, n]) => `<label class="chip"><input type="checkbox" value="${k}" id="c-${k}" ${k === "estilo" ? "checked" : ""}><span>${esc(n)}</span></label>`).join("");
+  if (d.mostrar_uso === false) document.querySelector(".uso").hidden = true;
   mostrarUso(null, d.uso_total);
-  if (d.ia_texto) $("#p-texto .hint").textContent = "Uma IA identifica pelo texto qual é o filme, mesmo com erro de digitação ou fora do catálogo, e o Jev entende quais critérios você quer e faz todas as comparações.";
+  if (d.ia_texto) $("#t-hint").textContent = "Uma IA identifica o filme pelo texto, mesmo com erro de digitação ou fora do catálogo, e você confirma. Depois o Jev compara.";
 });
 
 // ---------- Abas exclusivas ----------
@@ -353,10 +366,13 @@ function atualizarTags() {
   $("#tags").innerHTML = f.estilo.map(t => `<label class="chip"><input type="checkbox" value="${esc(t)}" checked><span>${esc(t)}</span></label>`).join("");
 }
 $("#crit").addEventListener("change", () => { atualizarTags(); validar(); });
-$("#pedido").addEventListener("input", validar);
+$("#pedido").addEventListener("input", () => { TX = {cand: null, alts: [], rejeitados: [], criterios: []}; $("#t-confirma").hidden = true; $("#t-mais").hidden = true; validar(); });
 function criteriosMarcados() { return [...document.querySelectorAll("#crit input:checked")].map(i => i.value); }
 function validar() {
-  $("#go").disabled = ABA === "filme" ? !(ESCOLHIDO && criteriosMarcados().length) : $("#pedido").value.trim().length < 5;
+  const texto = ABA === "texto";
+  $("#go-txt").textContent = texto ? "Identificar o filme" : "Buscar sugestões";
+  $("#go").hidden = texto && (!!TX.cand || !$("#t-mais").hidden);
+  $("#go").disabled = texto ? $("#pedido").value.trim().length < 5 : !(ESCOLHIDO && criteriosMarcados().length);
 }
 validar();
 
@@ -385,15 +401,69 @@ async function carregarOnde(ids) {
 }
 
 // ---------- Busca de sugestões ----------
-$("#f").addEventListener("submit", async e => {
+// ---------- Aba de texto: identificar, confirmar, ou pedir mais detalhes ----------
+async function identificar() {
+  const pedido = [$("#pedido").value, $("#extra").value].map(s => s.trim()).filter(Boolean).join("\n");
+  $("#go").disabled = true; $("#t-retentar").disabled = true;
+  $("#t-confirma").hidden = false; $("#t-confirma").innerHTML = `<p class="hint">Identificando o filme…</p>`;
+  limparUso();
+  try {
+    const r = await fetch("/api/identificar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pedido, rejeitados: TX.rejeitados})});
+    const d = await r.json();
+    mostrarUso(d.uso, d.uso_total);
+    if (!r.ok) throw new Error(d.erro || "Erro ao identificar");
+    TX.cand = d.candidato; TX.alts = d.alternativas || []; TX.criterios = d.criterios || ["estilo"];
+    if (!TX.cand) { $("#t-confirma").hidden = true; pedirMais("Não consegui identificar o filme. Conte mais detalhes."); return; }
+    $("#t-mais").hidden = true;
+    mostrarConfirmacao();
+  } catch (err) {
+    $("#t-confirma").innerHTML = `<p class="hint" style="color:var(--danger)">${esc(err.message)}</p>`;
+  } finally { $("#t-retentar").disabled = false; validar(); }
+}
+function pedirMais(msg) {
+  TX.cand = null; $("#t-mais").hidden = false;
+  $("#t-mais .lbl").textContent = msg || "Conte mais detalhes";
+  $("#extra").focus(); validar();
+}
+function mostrarConfirmacao() {
+  const c = TX.cand;
+  $("#t-confirma").innerHTML = `<span class="lbl">É este o filme?</span>
+    <div class="chosen">${capa(c.poster, c.titulo, "thumb")}
+      <div><b>${esc(c.titulo)}</b><small>${esc(c.titulo_original && c.titulo_original !== c.titulo ? c.titulo_original + " · " : "")}${c.ano || ""}${c.atores?.length ? " · " + esc(c.atores.join(", ")) : ""}</small></div><span></span></div>
+    ${TX.alts.length ? `<p class="sub-lbl">Ou seria um destes?</p><ul class="alts">${TX.alts.map((a, i) => `<li><button type="button" class="sug" data-alt="${i}">${capa(a.poster, a.titulo, "thumb")}<span><b>${esc(a.titulo)}</b><small>${a.ano || ""}${a.atores?.length ? " · " + esc(a.atores.join(", ")) : ""}</small></span><span></span></button></li>`).join("")}</ul>` : ""}
+    <p class="sub-lbl">Entendi que você quer parecido em (pode mudar):</p>
+    <div class="chips" id="crit-t" role="group" aria-label="Critérios">${Object.entries(NOMES).map(([k, n]) => `<label class="chip"><input type="checkbox" value="${k}" ${TX.criterios.includes(k) ? "checked" : ""}><span>${esc(n)}</span></label>`).join("")}</div>
+    <div class="actions" style="margin-top:16px">
+      <button class="btn" type="button" id="t-sim"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Sim, buscar parecidos</button>
+      <button class="btn ghost" type="button" id="t-nao">Não é esse</button>
+    </div>`;
+  $("#t-confirma").querySelectorAll("[data-alt]").forEach(b => b.onclick = () => {
+    const i = Number(b.dataset.alt); [TX.cand, TX.alts[i]] = [TX.alts[i], TX.cand]; guardarCriterios(); mostrarConfirmacao();
+  });
+  const critT = () => [...document.querySelectorAll("#crit-t input:checked")].map(i => i.value);
+  const guardarCriterios = () => { TX.criterios = critT(); };
+  $("#crit-t").addEventListener("change", () => { guardarCriterios(); $("#t-sim").disabled = !TX.criterios.length; });
+  $("#t-sim").onclick = () => buscar({filme: c.id || "", imdb: c.id ? "" : c.imdb, criterios: critT()}, c.titulo, c.poster, true);
+  $("#t-nao").onclick = () => {
+    TX.rejeitados.push({imdb: c.imdb, id: c.id, titulo: c.titulo_original || c.titulo, ano: c.ano}, ...TX.alts.map(a => ({imdb: a.imdb, id: a.id, titulo: a.titulo_original || a.titulo, ano: a.ano})));
+    $("#t-confirma").hidden = true;
+    pedirMais("Não é esse? Conte mais detalhes: um ator, o ano, uma cena…");
+  };
+  validar();
+}
+$("#t-retentar").onclick = () => { if ($("#extra").value.trim() || $("#pedido").value.trim()) identificar(); };
+
+// ---------- Busca de sugestões ----------
+$("#f").addEventListener("submit", e => {
   e.preventDefault();
   if ($("#go").disabled) return;
-  const body = ABA === "filme"
-    ? {filme: ESCOLHIDO.id || "", imdb: ESCOLHIDO.id ? "" : ESCOLHIDO.imdb, criterios: criteriosMarcados(),
-       foco: $("#tagbox").hidden ? [] : [...document.querySelectorAll("#tags input:checked")].map(i => i.value)}
-    : {pedido: $("#pedido").value, filme: "", criterios: []};
-  const titulo = ABA === "filme" ? ESCOLHIDO.titulo : "Pedido em texto";
-  recolher(titulo, "Consultando o Jev…", ABA === "filme" ? ESCOLHIDO.poster : null);
+  if (ABA === "texto") return identificar();
+  buscar({filme: ESCOLHIDO.id || "", imdb: ESCOLHIDO.id ? "" : ESCOLHIDO.imdb, criterios: criteriosMarcados(),
+    foco: $("#tagbox").hidden ? [] : [...document.querySelectorAll("#tags input:checked")].map(i => i.value)}, ESCOLHIDO.titulo, ESCOLHIDO.poster, false);
+});
+
+async function buscar(body, titulo, poster, peloTexto) {
+  recolher(titulo, "Consultando o Jev…", poster);
   $("#res-head").hidden = false; $("#count").textContent = "";
   $("#out").innerHTML = `<div class="lista">${'<div class="skel"></div>'.repeat(3)}</div>`;
   limparUso();
@@ -410,8 +480,9 @@ $("#f").addEventListener("submit", async e => {
     if (!r.ok) throw new Error(d.erro || "Erro ao consultar");
     const ref = d.referencia;
     if (d.importado) CAT.push(ref);
-    if (ABA === "filme" && !ESCOLHIDO.id) { ESCOLHIDO = {...ESCOLHIDO, id: ref.id, no_catalogo: true}; }
-    recolher(`${ref.titulo_br} (${ref.ano})`, `Critérios: ${d.criterios.map(c => NOMES[c]).join(", ")}${d.importado ? " · catalogado agora" : ""}${d.entendido?.ia ? " · filme identificado pela IA" : ""}`, ref.poster);
+    if (!peloTexto && !ESCOLHIDO.id) { ESCOLHIDO = {...ESCOLHIDO, id: ref.id, no_catalogo: true}; }
+    if (peloTexto && TX.cand && !TX.cand.id) TX.cand = {...TX.cand, id: ref.id, no_catalogo: true};
+    recolher(`${ref.titulo_br} (${ref.ano})`, `Critérios: ${d.criterios.map(c => NOMES[c]).join(", ")}${d.importado ? " · catalogado agora" : ""}${peloTexto ? " · pelo seu texto" : ""}`, ref.poster);
     $("#count").textContent = `top ${d.ranking.length} de ${d.candidatos_avaliados} avaliados`;
     const varios = d.criterios.length > 1;
     $("#out").innerHTML = d.ranking.length ? `<ol class="lista">${d.ranking.map((f, i) => `
@@ -436,6 +507,6 @@ $("#f").addEventListener("submit", async e => {
     $("#r-sub").textContent = "Não deu certo";
     $("#out").innerHTML = `<div class="card msg err">${esc(err.message)}</div>`;
   } finally { validar(); }
-});
+}
 </script>
 </body></html>

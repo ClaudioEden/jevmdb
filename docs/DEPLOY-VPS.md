@@ -13,13 +13,13 @@ visitante ──HTTPS──> Caddy (portas 80/443) ──> node server.js (127.0
 - [ ] Uma VPS com **Ubuntu 24.04** (1 vCPU e 1 GB de RAM bastam), com IPv4 fixo e acesso SSH como root ou com sudo.
 - [ ] Acesso ao painel onde está o DNS de `w3pd.com.br`.
 - [ ] As chaves que hoje estão no seu `.env` (TypeSafe, TMDB, OMDb, Gemini).
-- [ ] O repositório no GitHub (os passos abaixo usam `https://github.com/ClaudioEden/jev-filmes`; troque se o nome for outro).
+- [ ] O repositório no GitHub (os passos abaixo usam `https://github.com/ClaudioEden/jevmdb`; troque se o nome for outro).
 
 Anote o IP da VPS. Nos exemplos ele aparece como `203.0.113.10`.
 
 ## 1. DNS: criar jev-filmes.w3pd.com.br
 
-Hoje o DNS de `w3pd.com.br` está na sua hospedagem (servidores `ns1…ns4.vipreseller30ssd.com`), então a entrada é criada no painel dessa hospedagem, não no Registro.br.
+Primeiro descubra onde está o DNS de `w3pd.com.br` com `dig +short NS w3pd.com.br`. Se os servidores forem os da sua hospedagem, a entrada é criada no painel dela, não no Registro.br.
 
 1. Entre no painel da hospedagem (normalmente cPanel) e abra **Domínios → Zone Editor** (ou "Editor de Zona DNS").
 2. No domínio `w3pd.com.br`, clique em **+ A Record** (ou "Adicionar registro" e escolha o tipo **A**).
@@ -72,7 +72,7 @@ node -v   # tem que mostrar v22.x
 ## 4. Baixar o código e montar a pasta de dados
 
 ```bash
-git clone https://github.com/ClaudioEden/jev-filmes.git /opt/jev-filmes
+git clone https://github.com/ClaudioEden/jevmdb.git /opt/jev-filmes
 
 # Os dados ficam fora da pasta do código, para o "git pull" nunca brigar com fichas novas.
 mkdir -p /var/lib/jev-filmes
@@ -120,6 +120,8 @@ Environment=PORT=3000
 Environment=HOST=127.0.0.1
 Environment=JEV_ATRAS_DE_PROXY=1
 Environment=JEV_DADOS=/var/lib/jev-filmes
+# Descomente para esconder do público o custo e os tokens (a barra do topo):
+# Environment=JEV_MOSTRAR_USO=0
 Restart=always
 RestartSec=3
 

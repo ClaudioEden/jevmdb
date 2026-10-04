@@ -33,6 +33,7 @@ Sem chave, ou com `JEV_MOCK=1`, roda em **modo simulado**: as notas são uma heu
 | `PORT` | 3000 | Porta do servidor |
 | `HOST` | (todas) | Endereço de escuta; em produção use 127.0.0.1 atrás do proxy |
 | `JEV_ATRAS_DE_PROXY` | (vazio) | `1` quando houver Caddy/Nginx na frente: o IP da trava passa a vir do X-Forwarded-For |
+| `JEV_MOSTRAR_USO` | 1 | `0` esconde do público o custo, os tokens e o total gasto (a barra do topo some) |
 | `JEV_DADOS` | ./data | Pasta das fichas e da trava (no servidor, fora da pasta do código) |
 | `JEV_MODEL` | jev-latest | Modelo do Jev |
 | `TYPESAFE_API_URL` | https://api.typesafe.ai/v1/systemone | Endpoint |
