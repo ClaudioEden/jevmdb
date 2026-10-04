@@ -185,7 +185,13 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
 #av-coment input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
 #av-coment .btn{min-height:42px;padding:8px 18px}
 #av-ok{text-align:center;margin:0}
-@media (max-width:640px){.estrela{min-width:28px;padding:2px}.estrela svg{width:20px;height:20px}.langs{position:absolute;top:10px;right:16px}.top-in{position:relative}}
+@media (max-width:640px){.estrela{min-width:28px;padding:2px}.estrela svg{width:20px;height:20px}
+  /* Celular: marca e bandeiras na primeira linha, o selo do modo vai para baixo da marca */
+  .top-in{display:grid;grid-template-columns:1fr auto;align-items:center}
+  .brand{flex-wrap:wrap;row-gap:2px;margin-right:0}
+  .brand .badge{font-size:.66rem;padding:2px 7px}
+  .langs{grid-column:2;grid-row:1}
+  .uso{grid-column:1/-1}}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--primary-soft);border-top-color:var(--primary);border-radius:50%;margin-right:6px;vertical-align:-1px;animation:gira .8s linear infinite}
 @keyframes gira{to{transform:rotate(360deg)}}
 .novo{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);margin-left:6px;vertical-align:middle}
@@ -323,7 +329,7 @@ const TXT = {
     hero_h1: "Ache filmes <em>parecidos</em> com o que você gostou",
     hero_p: "Escolha um filme e o que importa. O Jev compara a ficha dele com cada filme do catálogo e dá uma nota por critério.",
     nova: "Nova pesquisa", tabs_aria: "Como você quer buscar", tab_filme: "Escolher", tab_filme_longo: " filme", tab_texto: "Descrever", tab_texto_longo: " em texto",
-    ref_lbl: "Filme de referência", q_ph: "Digite o nome em português ou o original: Matrix, O Juiz, Duna…", sugs_aria: "Filmes encontrados",
+    ref_lbl: "Filme de referência", q_ph: "Ex.: Matrix, O Juiz, Duna…", sugs_aria: "Filmes encontrados",
     q_hint: "Busco no catálogo e no IMDb. Se o filme for novo, eu junto os dados do IMDb, do Wikidata e da Wikipedia e catalogo antes de comparar.",
     crit_lbl: "Parecido em quê?", crit_hint: "Marque um ou mais. Com mais de um, a nota final é a média das notas de cada critério.", tags_lbl: "Estilo que importa",
     pedido_lbl: "O que você procura?", pedido_ph: "Quero um filme parecido com O Juiz, aquele com o Stallone, no estilo ficção, futuro e distopia, e que seja da mesma época.",
@@ -362,7 +368,7 @@ const TXT = {
     hero_h1: "Find movies <em>similar</em> to the ones you loved",
     hero_p: "Pick a movie and what matters to you. Jev compares it with every movie in the catalog and scores each criterion.",
     nova: "New search", tabs_aria: "How do you want to search", tab_filme: "Pick", tab_filme_longo: " a movie", tab_texto: "Describe", tab_texto_longo: " in words",
-    ref_lbl: "Reference movie", q_ph: "Type the title: The Matrix, Judge Dredd, Dune…", sugs_aria: "Movies found",
+    ref_lbl: "Reference movie", q_ph: "e.g. The Matrix, Judge Dredd, Dune…", sugs_aria: "Movies found",
     q_hint: "I search the catalog and IMDb. If the movie is new, I gather data from IMDb, Wikidata and Wikipedia and add it to the catalog before comparing.",
     crit_lbl: "Similar in what?", crit_hint: "Pick one or more. With more than one, the final score is the average of the criteria scores.", tags_lbl: "Style that matters",
     pedido_lbl: "What are you looking for?", pedido_ph: "I want something like Judge Dredd, the one with Stallone, sci-fi, future and dystopia, from the same era.",
@@ -401,7 +407,7 @@ const TXT = {
     hero_h1: "Encuentra películas <em>parecidas</em> a las que te gustaron",
     hero_p: "Elige una película y lo que te importa. Jev la compara con cada película del catálogo y da una nota por criterio.",
     nova: "Nueva búsqueda", tabs_aria: "Cómo quieres buscar", tab_filme: "Elegir", tab_filme_longo: " película", tab_texto: "Describir", tab_texto_longo: " en texto",
-    ref_lbl: "Película de referencia", q_ph: "Escribe el título: Matrix, El Juez, Dune…", sugs_aria: "Películas encontradas",
+    ref_lbl: "Película de referencia", q_ph: "Ej.: Matrix, El Juez, Dune…", sugs_aria: "Películas encontradas",
     q_hint: "Busco en el catálogo y en IMDb. Si la película es nueva, reúno los datos de IMDb, Wikidata y Wikipedia y la catalogo antes de comparar.",
     crit_lbl: "¿Parecida en qué?", crit_hint: "Marca uno o más. Con más de uno, la nota final es el promedio de las notas de cada criterio.", tags_lbl: "Estilo que importa",
     pedido_lbl: "¿Qué buscas?", pedido_ph: "Quiero algo parecido a El Juez, la de Stallone, de ciencia ficción, futuro y distopía, de la misma época.",
