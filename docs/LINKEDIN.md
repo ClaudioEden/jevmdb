@@ -25,7 +25,7 @@ Para a consulta grátis sem cadastro, a trava combina o fingerprint do navegador
 Stack: Node puro, sem nenhuma dependência, fichas em arquivos JSON, rodando numa VPS com Caddy na frente. O próximo passo é Postgres e cadastro por WhatsApp.
 
 O código está aberto: https://github.com/ClaudioEden/jevmdb
-Para testar: https://jev-filmes.w3pd.com.br
+Para testar: https://jevmdb.w3pd.com.br
 
 #IA #NodeJS #DesenvolvimentoDeSoftware #Recomendação
 
@@ -33,7 +33,7 @@ Para testar: https://jev-filmes.w3pd.com.br
 
 ## Post 2: anúncio discreto
 
-Coloquei no ar um projeto pessoal: o Jev Filmes.
+Coloquei no ar um projeto pessoal: o JevMDB.
 
 Você escolhe um filme de que gostou, marca o que importa (estilo, atores, época, enredo) e ele devolve os mais parecidos, com a porcentagem de similaridade, o pôster e onde assistir no Brasil.
 
@@ -41,7 +41,7 @@ Também dá para só descrever: "quero algo parecido com aquele do Stallone de j
 
 Comecei como um teste do Jev, um modelo que dá notas em vez de escrever texto, e acabou virando algo que eu mesmo uso para escolher o filme do fim de semana.
 
-A primeira busca é grátis, sem cadastro: https://jev-filmes.w3pd.com.br
+A primeira busca é grátis, sem cadastro: https://jevmdb.w3pd.com.br
 
 Se testar, me conta se a sugestão acertou. E se quiser ver como foi feito, o código está no GitHub (link nos comentários).
 

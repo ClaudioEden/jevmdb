@@ -1,9 +1,9 @@
 // Completa as fichas do catálogo com o que estiver faltando: código do IMDb, pôster, notas do IMDb (OMDb) e do TMDB,
-// e onde assistir no Brasil. Fichas importadas trocam o resumo da Wikipedia pela sinopse do TMDB em português.
+// título/sinopse/gêneros em inglês e espanhol, e onde assistir (Brasil, EUA e México). Fichas importadas trocam o resumo da Wikipedia pela sinopse do TMDB em português.
 // Não chama o Jev.  Uso:  node scripts/completar-fichas.js
 try { process.loadEnvFile(require("path").join(__dirname, "..", ".env")); } catch {}
 const store = require("../lib/store");
-const { buscarImdb, tmdb, omdb, ondeAssistir } = require("../lib/importar");
+const { buscarImdb, tmdb, omdb, ondeAssistir, traduzir } = require("../lib/importar");
 
 const perto = (f, x) => !f.ano || Math.abs((x.ano || 0) - f.ano) <= 1;
 
@@ -23,9 +23,10 @@ const perto = (f, x) => !f.ano || Math.abs((x.ano || 0) - f.ano) <= 1;
       if (f.origem === "importado" && tm.sinopse) f.sinopse = tm.sinopse;
     }
     if (om?.nota_imdb) f.nota_imdb = om.nota_imdb;
+    await traduzir(f).catch(() => null);
     await ondeAssistir(f).catch(() => null);
     if (JSON.stringify(f) !== antes) store.salvar(f);
-    const pl = (f.onde_assistir?.plataformas || []).filter(p => p.tipo === "assinatura").map(p => p.nome).join(", ");
+    const pl = (f.onde_assistir_regioes?.BR?.plataformas || []).filter(p => p.tipo === "assinatura").map(p => p.nome).join(", ");
     console.log(`${f.titulo_br} (${f.ano}) imdb ${f.nota_imdb ?? "-"} tmdb ${f.nota_tmdb ?? "-"}${pl ? " | " + pl : ""}`);
   }
 })();

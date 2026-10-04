@@ -1,4 +1,4 @@
-// Servidor do Jev Recomendador: serve a página e chama o Jev (TypeSafe SystemOne).
+// Servidor do JevMDB: serve a página e chama o Jev (TypeSafe SystemOne).
 // A chave fica só aqui no servidor, nunca vai para o navegador.
 // Uso:  TYPESAFE_API_KEY=sua-chave node server.js     (modo real)
 //       JEV_MOCK=1 node server.js                     (modo simulado, sem chave)
@@ -13,11 +13,24 @@ const { recomendar, CRITERIOS, MAX_RESULTADOS } = require("./lib/recomendar");
 const { importar, importarPorImdb, buscarCandidatos, buscarImdb, ondeAssistir } = require("./lib/importar");
 const gemini = require("./lib/gemini");
 const cota = require("./lib/cota");
+const buscas = require("./lib/buscas");
+const { IDIOMAS, idiomaDe, localizar } = require("./lib/i18n");
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || undefined; // em produção, 127.0.0.1 para só o proxy enxergar
 
-class ErroUsuario extends Error {}
+// Erro de uso (400). O "codigo" deixa a tela mostrar a mensagem no idioma escolhido; a frase em português é a reserva.
+class ErroUsuario extends Error { constructor(msg, codigo) { super(msg); this.codigo = codigo; } }
+
+// Ficha como vai para a tela, com título, sinopse, gêneros e tags no idioma pedido.
+function fichaPublica(f, lang) {
+  const l = localizar(f, lang);
+  return {
+    id: f.id, titulo_br: l.titulo, titulo: l.titulo, titulo_original: f.titulo_original, ano: f.ano, diretor: f.diretor,
+    elenco: f.elenco, estilo: l.estilo, generos: l.generos, sinopse: l.sinopse, fonte: f.fonte, fontes: f.fontes || null,
+    poster: f.poster || null, imdb: f.imdb || null, nota_imdb: f.nota_imdb ?? null, nota_tmdb: f.nota_tmdb ?? null,
+  };
+}
 
 // Total gasto desde que o servidor subiu, para conferir com o saldo da TypeSafe.
 const TOTAL = { buscas: 0, chamadas: 0, input_tokens: 0, output_tokens: 0, custo_usd: 0, desde: new Date().toISOString() };
@@ -61,10 +74,11 @@ async function entenderComIA(pedido, med) {
 
 // Passo 1 do texto livre: só identifica o filme e os critérios, para o usuário confirmar antes da busca.
 // Não compara nada e não gasta a consulta grátis. "rejeitados" são os filmes que o usuário já disse que não eram.
-const resumoCandidato = c => ({ id: c.id || null, imdb: c.imdb || null, titulo: c.titulo_br || c.titulo, titulo_original: c.titulo_original || c.titulo,
+const resumoCandidato = (c, lang = "pt") => ({ id: c.id || null, imdb: c.imdb || null,
+  titulo: c.id ? localizar(c, lang).titulo : c.titulo_br || c.titulo, titulo_original: c.titulo_original || c.titulo,
   ano: c.ano || null, atores: (c.elenco || c.atores || []).slice(0, 2), poster: c.poster || null, no_catalogo: !!c.id });
-async function identificar({ pedido = "", rejeitados = [] }, med) {
-  if (pedido.trim().length < 3) throw new ErroUsuario("Escreva o que você procura.");
+async function identificar({ pedido = "", rejeitados = [] }, med, lang = "pt") {
+  if (pedido.trim().length < 3) throw new ErroUsuario("Escreva o que você procura.", "pedido_vazio");
   const fora = new Set(rejeitados.map(r => r.imdb || r.id).filter(Boolean));
   const nomes = rejeitados.map(r => `${r.titulo}${r.ano ? ` (${r.ano})` : ""}`).join("; ");
   let candidatos = [], ia = null;
@@ -78,14 +92,14 @@ async function identificar({ pedido = "", rejeitados = [] }, med) {
         const achados = (await buscarImdb(`${titulo} ${g.ano || ""}`.trim())).filter(x => !fora.has(x.imdb));
         const melhor = achados.find(x => !g.ano || Math.abs((x.ano || 0) - g.ano) <= 1) || achados[0];
         candidatos = [melhor, ...achados.filter(x => x !== melhor)].filter(Boolean)
-          .map(s => resumoCandidato(store.todos().find(f => f.imdb === s.imdb) || s));
+          .map(s => resumoCandidato(store.todos().find(f => f.imdb === s.imdb) || s, lang));
       }
     } catch (e) { console.error("Gemini falhou, usando o Jev no catálogo:", e.message); }
   }
   if (!candidatos.length) {
     const e = await entenderPedido(pedido, med);
     const f = store.porId(e.filme?.choice);
-    if (f && !fora.has(f.imdb || f.id)) candidatos = [resumoCandidato(f)];
+    if (f && !fora.has(f.imdb || f.id)) candidatos = [resumoCandidato(f, lang)];
   }
   const crit = await criteriosDoTexto(pedido, med);
   return {
@@ -110,7 +124,7 @@ async function entenderPedido(pedido, med) {
   };
 }
 
-async function handleRecomendar(body, med) {
+async function handleRecomendar(body, med, lang = "pt") {
   const { pedido = "", filme = "", imdb = "", criterios = [], foco = [] } = body;
   let ref = null, importado = false, entendido = null;
 
@@ -119,14 +133,14 @@ async function handleRecomendar(body, med) {
     if (!ref) {
       const antes = store.todos().length;
       ref = await importarPorImdb(imdb, med);
-      if (!ref) throw new ErroUsuario("Achei o filme no IMDb, mas as fontes não trazem sinopse nem gênero para comparar. Tente outro título.");
+      if (!ref) throw new ErroUsuario("Achei o filme no IMDb, mas as fontes não trazem sinopse nem gênero para comparar. Tente outro título.", "sem_dados");
       importado = store.todos().length > antes;
     }
   } else if (filme.trim()) {
     ref = store.porId(filme) || store.porTitulo(filme);
     if (!ref) {
       ref = await importar(filme, med);
-      if (!ref) throw new ErroUsuario(`Não encontrei o filme "${filme}" no IMDb nem na Wikipedia. Confira o título.`);
+      if (!ref) throw new ErroUsuario(`Não encontrei o filme "${filme}" no IMDb nem na Wikipedia. Confira o título.`, "filme_nao_encontrado");
       importado = true;
     }
   }
@@ -135,7 +149,7 @@ async function handleRecomendar(body, med) {
   if (!ref && pedido.trim() && gemini.ATIVO) {
     try {
       const r = await entenderComIA(pedido, med);
-      if (!r) throw new ErroUsuario("Não consegui identificar o filme no seu texto. Tente citar o título, o ano ou um ator.");
+      if (!r) throw new ErroUsuario("Não consegui identificar o filme no seu texto. Tente citar o título, o ano ou um ator.", "nao_identificado");
       ({ ref, importado } = r);
       entendido = { filme: { choice: r.ref.id }, ia: r.ia, criterios: r.criterios, probabilidades_criterios: r.probabilidades_criterios };
     } catch (e) {
@@ -147,24 +161,20 @@ async function handleRecomendar(body, med) {
   if (!ref && !filme.trim() && !imdb && pedido.trim()) {
     entendido = await entenderPedido(pedido, med);
     if (entendido.filme?.choice === "__outro__")
-      throw new ErroUsuario("O filme do pedido ainda não está no catálogo. Use a aba Escolher filme para procurar e catalogar.");
+      throw new ErroUsuario("O filme do pedido ainda não está no catálogo. Use a aba Escolher filme para procurar e catalogar.", "fora_catalogo");
     ref = store.porId(entendido.filme?.choice);
     if (falhaIA) entendido.falha_ia = falhaIA;
   }
-  if (!ref) throw new ErroUsuario("Informe o filme de referência ou escreva um pedido.");
+  if (!ref) throw new ErroUsuario("Informe o filme de referência ou escreva um pedido.", "sem_referencia");
 
   let crits = criterios.filter(c => CRITERIOS[c]);
   if (!crits.length) crits = entendido?.criterios?.length ? entendido.criterios : ["estilo"];
 
   const r = await recomendar(ref, crits, foco, med);
   return {
-    referencia: ref, importado, entendido, criterios: crits,
+    referencia: fichaPublica(ref, lang), importado, entendido, criterios: crits,
     candidatos_avaliados: r.candidatos_avaliados,
-    ranking: r.ranking.map(({ filme: f, notas, media }) => ({
-      id: f.id, titulo_br: f.titulo_br, titulo_original: f.titulo_original, ano: f.ano, diretor: f.diretor,
-      elenco: f.elenco, estilo: f.estilo, sinopse: f.sinopse, fonte: f.fonte, fontes: f.fontes || null,
-      poster: f.poster || null, imdb: f.imdb || null, nota_imdb: f.nota_imdb ?? null, nota_tmdb: f.nota_tmdb ?? null, notas, media,
-    })),
+    ranking: r.ranking.map(({ filme: f, notas, media }) => ({ ...fichaPublica(f, lang), notas, media })),
   };
 }
 
@@ -178,60 +188,75 @@ function send(res, code, data, type = "application/json; charset=utf-8", extra =
 
 http.createServer(async (req, res) => {
   try {
-    if (req.method === "GET" && (req.url === "/" || req.url === "/index.html"))
-      return send(res, 200, fs.readFileSync(path.join(__dirname, "public", "index.html")), "text/html; charset=utf-8");
     const url = new URL(req.url, "http://x");
+    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html"))
+      return send(res, 200, fs.readFileSync(path.join(__dirname, "public", "index.html")), "text/html; charset=utf-8");
     if (req.method === "GET" && url.pathname === "/api/buscar-filme") {
       // Só procura candidatos (IMDb + catálogo). Não chama o Jev e não gasta a consulta grátis.
-      const q = (url.searchParams.get("q") || "").trim();
-      return send(res, 200, { resultados: q.length < 2 ? [] : await buscarCandidatos(q) });
+      const q = (url.searchParams.get("q") || "").trim(), lang = idiomaDe(req, url);
+      const resultados = q.length < 2 ? [] : await buscarCandidatos(q);
+      for (const r of resultados) if (r.id) { const f = store.porId(r.id); if (f) r.titulo = localizar(f, lang).titulo; }
+      return send(res, 200, { resultados });
     }
     if (req.method === "GET" && url.pathname === "/api/onde-assistir") {
-      // Plataformas no Brasil para os filmes do resultado. Usa o que já está na ficha; só busca no TMDB o que venceu.
+      // Plataformas do país do idioma (pt: Brasil, en: EUA, es: México). Usa o que já está na ficha; só busca no TMDB o que venceu.
       const ids = (url.searchParams.get("ids") || "").split(",").filter(Boolean).slice(0, 20);
+      const regiao = IDIOMAS[idiomaDe(req, url)].regiao;
       const pares = await Promise.all(ids.map(async id => {
         const f = store.porId(id);
-        return [id, f ? await ondeAssistir(f).catch(() => null) : null];
+        return [id, f ? await ondeAssistir(f, regiao).catch(() => null) : null];
       }));
       return send(res, 200, Object.fromEntries(pares));
     }
-    if (req.method === "GET" && req.url === "/api/catalogo")
+    if (req.method === "GET" && url.pathname === "/api/catalogo")
       return send(res, 200, {
         modo: MOCK ? "simulado" : "jev", modelo: MODEL, max_resultados: MAX_RESULTADOS, cota_anonima: cota.ATIVA, uso_total: TOTAL, mostrar_uso: MOSTRAR_USO, ia_texto: gemini.ATIVO,
         criterios: Object.fromEntries(Object.entries(CRITERIOS).map(([k, c]) => [k, c.nome])),
-        filmes: store.todos().map(({ id, titulo_br, titulo_original, ano, estilo }) => ({ id, titulo_br, titulo_original, ano, estilo })),
+        filmes: store.todos().map(f => ({ id: f.id, titulo_br: f.titulo_br, titulo_original: f.titulo_original, ano: f.ano,
+          estilo: f.estilo, estilo_tr: localizar(f, idiomaDe(req, url)).estilo })),
       });
-    if (req.method === "POST" && req.url === "/api/identificar") {
+    if (req.method === "POST" && url.pathname === "/api/identificar") {
       let raw = ""; for await (const c of req) raw += c;
       const med = novaMedicao();
       try {
-        const r = await identificar(JSON.parse(raw || "{}"), med);
+        const r = await identificar(JSON.parse(raw || "{}"), med, idiomaDe(req, url));
         const uso = med.fechar();
         return send(res, 200, { ...r, uso, uso_total: somar(uso) });
       } catch (e) {
         if (!(e instanceof ErroUsuario)) console.error(e);
         const uso = med.fechar();
-        return send(res, e instanceof ErroUsuario ? 400 : 502, { erro: e.message, uso, uso_total: somar(uso) });
+        return send(res, e instanceof ErroUsuario ? 400 : 502, { erro: e.message, codigo: e.codigo || "erro", uso, uso_total: somar(uso) });
       }
     }
-    if (req.method === "POST" && req.url === "/api/recomendar") {
+    if (req.method === "POST" && url.pathname === "/api/avaliar") {
+      // Nota de 1 a 10 estrelas (e comentário opcional) para uma busca feita.
+      let raw = ""; for await (const c of req) raw += c;
+      const { busca_id, estrelas, comentario } = JSON.parse(raw || "{}");
+      const r = buscas.avaliar(busca_id, { estrelas, comentario });
+      return r ? send(res, 200, { ok: true, ...r }) : send(res, 400, { erro: "Avaliação inválida", codigo: "avaliacao_invalida" });
+    }
+    if (req.method === "POST" && url.pathname === "/api/recomendar") {
       let raw = ""; for await (const c of req) raw += c;
       const { sinais, novoCookie } = cota.identificar(req);
       const cookie = novoCookie ? { "Set-Cookie": novoCookie } : {};
       const motivo = cota.motivoBloqueio(sinais);
       if (motivo)
-        return send(res, 402, { erro: "Você já usou sua consulta grátis.", precisa_cadastro: true, motivo }, undefined, cookie);
+        return send(res, 402, { erro: "Você já usou sua consulta grátis.", codigo: "cota", precisa_cadastro: true, motivo }, undefined, cookie);
       const med = novaMedicao();
       try {
-        const resultado = await handleRecomendar(JSON.parse(raw || "{}"), med);
+        const pedidoBody = JSON.parse(raw || "{}"), lang = idiomaDe(req, url);
+        const resultado = await handleRecomendar(pedidoBody, med, lang);
         cota.registrarUso(sinais); // só conta a consulta que deu resultado
         const uso = med.fechar();
-        return send(res, 200, { ...resultado, uso, uso_total: somar(uso) }, undefined, cookie);
+        // Guarda o resultado exibido (sem dados do visitante) por 60 dias, para a avaliação e para análise depois.
+        const busca_id = buscas.salvar({ idioma: lang, pedido: pedidoBody, referencia: resultado.referencia, criterios: resultado.criterios,
+          candidatos_avaliados: resultado.candidatos_avaliados, ranking: resultado.ranking, entendido: resultado.entendido, uso });
+        return send(res, 200, { ...resultado, busca_id, uso, uso_total: somar(uso) }, undefined, cookie);
       } catch (e) {
         // Mesmo com erro a busca pode ter gastado tokens (por exemplo, numa importação), então o uso volta junto.
         if (!(e instanceof ErroUsuario)) console.error(e);
         const uso = med.fechar();
-        return send(res, e instanceof ErroUsuario ? 400 : 502, { erro: e.message, uso, uso_total: somar(uso) }, undefined, cookie);
+        return send(res, e instanceof ErroUsuario ? 400 : 502, { erro: e.message, codigo: e.codigo || "erro", uso, uso_total: somar(uso) }, undefined, cookie);
       }
     }
     send(res, 404, { erro: "Não encontrado" });
@@ -239,4 +264,9 @@ http.createServer(async (req, res) => {
     if (!(e instanceof ErroUsuario)) console.error(e);
     send(res, e instanceof ErroUsuario ? 400 : 502, { erro: e.message });
   }
-}).listen(PORT, HOST, () => console.log(`Jev Recomendador em http://localhost:${PORT}  (modo ${MOCK ? "simulado, sem chave" : MODEL})`));
+}).listen(PORT, HOST, () => console.log(`JevMDB em http://localhost:${PORT}  (modo ${MOCK ? "simulado, sem chave" : MODEL})`));
+
+// Limpeza das buscas vencidas: ao subir e a cada 24 h.
+const limparBuscas = () => { const n = buscas.limpar(); if (n) console.log(`${n} buscas vencidas apagadas`); };
+limparBuscas();
+setInterval(limparBuscas, 24 * 3600 * 1000).unref();

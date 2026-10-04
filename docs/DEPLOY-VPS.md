@@ -1,11 +1,11 @@
-# Colocar o Jev Filmes no ar numa VPS
+# Colocar o JevMDB no ar numa VPS
 
-Endereço final: **https://jev-filmes.w3pd.com.br**
+Endereço final: **https://jevmdb.w3pd.com.br**
 
 O app é Node puro, sem dependências e sem banco de dados: as fichas e a trava ficam em arquivos JSON numa pasta de dados. Na VPS ele roda como serviço do sistema (systemd), atrás do **Caddy**, que cuida do domínio e do HTTPS (certificado grátis e renovado sozinho).
 
 ```
-visitante ──HTTPS──> Caddy (portas 80/443) ──> node server.js (127.0.0.1:3000) ──> /var/lib/jev-filmes (fichas + trava)
+visitante ──HTTPS──> Caddy (portas 80/443) ──> node server.js (127.0.0.1:3000) ──> /var/lib/jevmdb (fichas + trava)
 ```
 
 ## 0. O que você precisa
@@ -17,7 +17,7 @@ visitante ──HTTPS──> Caddy (portas 80/443) ──> node server.js (127.0
 
 Anote o IP da VPS. Nos exemplos ele aparece como `203.0.113.10`.
 
-## 1. DNS: criar jev-filmes.w3pd.com.br
+## 1. DNS: criar jevmdb.w3pd.com.br
 
 Primeiro descubra onde está o DNS de `w3pd.com.br` com `dig +short NS w3pd.com.br`. Se os servidores forem os da sua hospedagem, a entrada é criada no painel dela, não no Registro.br.
 
@@ -28,7 +28,7 @@ Primeiro descubra onde está o DNS de `w3pd.com.br` com `dig +short NS w3pd.com.
    | Campo | Valor |
    | --- | --- |
    | Tipo | `A` |
-   | Nome | `jev-filmes` (o painel completa para `jev-filmes.w3pd.com.br.`) |
+   | Nome | `jevmdb` (o painel completa para `jevmdb.w3pd.com.br.`) |
    | Endereço / Valor | o IPv4 da VPS, ex.: `203.0.113.10` |
    | TTL | `300` (5 minutos; facilita corrigir se errar) |
 
@@ -36,7 +36,7 @@ Primeiro descubra onde está o DNS de `w3pd.com.br` com `dig +short NS w3pd.com.
 5. Confira do seu Mac (pode levar de alguns minutos a algumas horas):
 
    ```bash
-   dig +short jev-filmes.w3pd.com.br
+   dig +short jevmdb.w3pd.com.br
    ```
 
    Tem que responder o IP da VPS. **Só siga para o passo 6 (Caddy) depois disso**, porque o certificado HTTPS só é emitido quando o nome já aponta para a VPS.
@@ -58,7 +58,7 @@ ufw allow 443
 ufw --force enable
 
 # Usuário próprio do app (sem login)
-useradd --system --home /opt/jev-filmes --shell /usr/sbin/nologin jev
+useradd --system --home /opt/jevmdb --shell /usr/sbin/nologin jev
 ```
 
 ## 3. Instalar o Node 22
@@ -72,19 +72,19 @@ node -v   # tem que mostrar v22.x
 ## 4. Baixar o código e montar a pasta de dados
 
 ```bash
-git clone https://github.com/ClaudioEden/jevmdb.git /opt/jev-filmes
+git clone https://github.com/ClaudioEden/jevmdb.git /opt/jevmdb
 
 # Os dados ficam fora da pasta do código, para o "git pull" nunca brigar com fichas novas.
-mkdir -p /var/lib/jev-filmes
-cp -r /opt/jev-filmes/data/filmes /var/lib/jev-filmes/
-chown -R jev:jev /var/lib/jev-filmes
+mkdir -p /var/lib/jevmdb
+cp -r /opt/jevmdb/data/filmes /var/lib/jevmdb/
+chown -R jev:jev /var/lib/jevmdb
 ```
 
 ## 5. Criar o .env com as chaves
 
 ```bash
-cp /opt/jev-filmes/.env.example /opt/jev-filmes/.env
-nano /opt/jev-filmes/.env
+cp /opt/jevmdb/.env.example /opt/jevmdb/.env
+nano /opt/jevmdb/.env
 ```
 
 Preencha as quatro chaves e confira que estão assim:
@@ -97,29 +97,29 @@ JEV_COTA_LIMITE_IP=5
 Depois proteja o arquivo (só o usuário do app lê):
 
 ```bash
-chown jev:jev /opt/jev-filmes/.env
-chmod 600 /opt/jev-filmes/.env
+chown jev:jev /opt/jevmdb/.env
+chmod 600 /opt/jevmdb/.env
 ```
 
 ## 6. Rodar como serviço (systemd)
 
-Crie `/etc/systemd/system/jev-filmes.service`:
+Crie `/etc/systemd/system/jevmdb.service`:
 
 ```bash
-cat > /etc/systemd/system/jev-filmes.service <<'EOF'
+cat > /etc/systemd/system/jevmdb.service <<'EOF'
 [Unit]
-Description=Jev Filmes
+Description=JevMDB
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 User=jev
-WorkingDirectory=/opt/jev-filmes
+WorkingDirectory=/opt/jevmdb
 ExecStart=/usr/bin/node server.js
 Environment=PORT=3000
 Environment=HOST=127.0.0.1
 Environment=JEV_ATRAS_DE_PROXY=1
-Environment=JEV_DADOS=/var/lib/jev-filmes
+Environment=JEV_DADOS=/var/lib/jevmdb
 # Descomente para esconder do público o custo e os tokens (a barra do topo):
 # Environment=JEV_MOSTRAR_USO=0
 Restart=always
@@ -130,8 +130,8 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now jev-filmes
-systemctl status jev-filmes --no-pager
+systemctl enable --now jevmdb
+systemctl status jevmdb --no-pager
 curl -s localhost:3000/api/catalogo | head -c 120; echo
 ```
 
@@ -140,7 +140,7 @@ O `curl` tem que mostrar `"modo":"jev"` e `"cota_anonima":true`.
 O que cada linha garante:
 - `HOST=127.0.0.1`: o Node só aceita conexão vinda da própria VPS (do Caddy), nunca direto da internet.
 - `JEV_ATRAS_DE_PROXY=1`: a trava pega o IP real do visitante que o Caddy repassa.
-- `JEV_DADOS`: fichas novas, a trava (`cota.json`) e o segredo dos cookies (`.segredo`) ficam em `/var/lib/jev-filmes`.
+- `JEV_DADOS`: fichas novas, a trava (`cota.json`) e o segredo dos cookies (`.segredo`) ficam em `/var/lib/jevmdb`.
 
 ## 7. HTTPS com o Caddy
 
@@ -150,7 +150,7 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/
 apt update && apt install -y caddy
 
 cat > /etc/caddy/Caddyfile <<'EOF'
-jev-filmes.w3pd.com.br {
+jevmdb.w3pd.com.br {
 	encode gzip
 	reverse_proxy 127.0.0.1:3000
 }
@@ -159,7 +159,7 @@ EOF
 systemctl reload caddy
 ```
 
-Abra **https://jev-filmes.w3pd.com.br**. Se o certificado demorar, veja o log com `journalctl -u caddy -n 50 --no-pager`. Quase sempre é o DNS que ainda não propagou.
+Abra **https://jevmdb.w3pd.com.br**. Se o certificado demorar, veja o log com `journalctl -u caddy -n 50 --no-pager`. Quase sempre é o DNS que ainda não propagou.
 
 ## 8. Testar no ar
 
@@ -173,28 +173,40 @@ Abra **https://jev-filmes.w3pd.com.br**. Se o certificado demorar, veja o log co
 
 | Para quê | Comando |
 | --- | --- |
-| Ver o log ao vivo | `journalctl -u jev-filmes -f` |
-| Reiniciar | `systemctl restart jev-filmes` |
-| Atualizar o código | `cd /opt/jev-filmes && git pull && systemctl restart jev-filmes` |
-| Zerar a trava (teste) | `rm /var/lib/jev-filmes/cota.json && systemctl restart jev-filmes` |
-| Aumentar o catálogo | `cd /opt/jev-filmes && sudo -u jev env JEV_DADOS=/var/lib/jev-filmes node scripts/semear.js 10 && systemctl restart jev-filmes` |
-| Completar notas e onde assistir | `cd /opt/jev-filmes && sudo -u jev env JEV_DADOS=/var/lib/jev-filmes node scripts/completar-fichas.js && systemctl restart jev-filmes` |
+| Ver o log ao vivo | `journalctl -u jevmdb -f` |
+| Reiniciar | `systemctl restart jevmdb` |
+| Atualizar o código | `cd /opt/jevmdb && git pull && systemctl restart jevmdb` |
+| Zerar a trava (teste) | `rm /var/lib/jevmdb/cota.json && systemctl restart jevmdb` |
+| Aumentar o catálogo | `cd /opt/jevmdb && sudo -u jev env JEV_DADOS=/var/lib/jevmdb node scripts/semear.js 10 && systemctl restart jevmdb` |
+| Completar notas e onde assistir | `cd /opt/jevmdb && sudo -u jev env JEV_DADOS=/var/lib/jevmdb node scripts/completar-fichas.js && systemctl restart jevmdb` |
 
 O servidor guarda o catálogo em memória, por isso reinicie depois de rodar os scripts.
 
 ## 10. Backup diário dos dados
 
 ```bash
-mkdir -p /var/backups/jev-filmes
-cat > /etc/cron.daily/jev-filmes-backup <<'EOF'
+mkdir -p /var/backups/jevmdb
+cat > /etc/cron.daily/jevmdb-backup <<'EOF'
 #!/bin/sh
-tar -czf /var/backups/jev-filmes/dados-$(date +%F).tar.gz -C /var/lib jev-filmes
-find /var/backups/jev-filmes -name 'dados-*.tar.gz' -mtime +14 -delete
+tar -czf /var/backups/jevmdb/dados-$(date +%F).tar.gz -C /var/lib jevmdb
+find /var/backups/jevmdb -name 'dados-*.tar.gz' -mtime +14 -delete
 EOF
-chmod +x /etc/cron.daily/jev-filmes-backup
+chmod +x /etc/cron.daily/jevmdb-backup
 ```
 
 Guarda 14 dias. De vez em quando, copie um desses arquivos para fora da VPS.
+
+## 10b. Buscas feitas (prazo de 60 dias)
+
+O servidor já apaga sozinho, a cada 24 h, as buscas vencidas em `/var/lib/jevmdb/buscas-feitas`. Se preferir garantir por cron também:
+
+```bash
+cat > /etc/cron.daily/jevmdb-limpar-buscas <<'FIM'
+#!/bin/sh
+cd /opt/jevmdb && sudo -u jev env JEV_DADOS=/var/lib/jevmdb node scripts/limpar-buscas.js
+FIM
+chmod +x /etc/cron.daily/jevmdb-limpar-buscas
+```
 
 ## 11. Custos para acompanhar
 

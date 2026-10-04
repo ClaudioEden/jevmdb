@@ -1,4 +1,4 @@
-# Jev Recomendador (versão 0.5)
+# JevMDB (versão 0.6)
 
 Recomendador de filmes que usa o **Jev** (TypeSafe, endpoint SystemOne) para comparar as fichas do catálogo.
 
@@ -63,10 +63,17 @@ Só conta a consulta que trouxe resultado. Os sinais ficam em `data/cota.json`, 
 - `lib/recomendar.js`: critérios, níveis de cada score e comparação.
 - `lib/importar.js`: busca de candidatos (catálogo + IMDb) e catalogação juntando IMDb, Wikidata, Wikipedia, TMDB e OMDb.
 - `lib/gemini.js`: identificação do filme no texto livre (opcional).
-- `scripts/completar-fichas.js` e `scripts/semear.js`: manutenção e crescimento do catálogo.
+- `lib/i18n.js`: idiomas e tradução das tags. `lib/buscas.js`: buscas feitas, avaliação e limpeza.
+- `scripts/completar-fichas.js` e `scripts/semear.js`: manutenção e crescimento do catálogo. `scripts/limpar-buscas.js`: limpeza por cron.
+
+## Idiomas
+O site é trilíngue: português do Brasil (padrão), inglês americano e espanhol. As bandeiras redondas no topo mostram os outros dois idiomas; a escolha fica guardada no navegador e também vale por `?lang=pt|en|es`. Títulos, sinopses e gêneros em inglês e espanhol vêm do TMDB e ficam na ficha (`i18n`); as tags de estilo são traduzidas por dicionário (`lib/i18n.js`). As comparações do Jev continuam em português por dentro.
+
+## Buscas feitas e avaliação
+Cada resultado exibido é gravado em `data/buscas-feitas/<id>.json` (sem dados do visitante) com prazo de **60 dias**. Abaixo do card de busca aparece "muito ruim ★★★★★★★★★★ excelente"; a nota é opcional e, se for **menor que 7**, o prazo cai para **15 dias**. Depois da nota aparece um campo para comentário opcional. O servidor apaga as buscas vencidas ao subir e a cada 24 h; `node scripts/limpar-buscas.js` faz o mesmo por cron.
 
 ## Onde assistir
-Vem do TMDB (dados do JustWatch) para o Brasil e fica guardado na ficha por 7 dias. A tela carrega depois dos resultados, sem atrasar a busca.
+Vem do TMDB (dados do JustWatch) para o país do idioma (Brasil, EUA ou México) e fica guardado na ficha por 7 dias. A tela carrega depois dos resultados, sem atrasar a busca.
 - `lib/jev.js`: cliente do Jev, com medição de custo e tempo.
 - `lib/store.js`: leitura e gravação das fichas. É o único módulo a trocar para migrar ao Postgres.
 - `lib/mock.js`: respostas simuladas.

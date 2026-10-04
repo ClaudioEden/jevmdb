@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Jev Recomendador</title>
+<title>JevMDB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
@@ -140,6 +140,25 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
 .alts .sug{min-height:48px}
 .alts .thumb{width:32px;height:48px}
 .sub-lbl{font-size:.8rem;color:var(--muted);margin:14px 0 6px}
+/* Idiomas: bolinhas com as bandeiras dos outros dois idiomas */
+.langs{display:flex;gap:6px}
+.lang{width:32px;height:32px;border-radius:50%;padding:0;border:2px solid var(--line);background:none;cursor:pointer;overflow:hidden;display:grid;place-items:center;transition:transform .15s,border-color .2s}
+.lang:hover{transform:scale(1.08);border-color:var(--primary)}
+.lang svg{width:100%;height:100%;display:block}
+/* Avaliação da busca */
+.nota-busca{margin:18px 0 0;padding:14px 18px;border:1px dashed var(--line);border-radius:var(--r);background:var(--surface)}
+.av-linha{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px}
+.av-fim{font-size:.82rem;color:var(--muted);font-weight:600}
+.estrelas{display:flex;gap:2px}
+.estrela{background:none;border:0;padding:4px;cursor:pointer;color:var(--bar);min-width:32px;min-height:36px;display:grid;place-items:center}
+.estrela svg{width:22px;height:22px;fill:currentColor;stroke:none}
+.estrela.on{color:#fbbf24}
+.estrela:focus-visible{outline:2px solid var(--primary);border-radius:6px}
+#av-coment input{flex:1;min-width:200px;max-width:520px;font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);outline:none}
+#av-coment input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+#av-coment .btn{min-height:42px;padding:8px 18px}
+#av-ok{text-align:center;margin:0}
+@media (max-width:640px){.estrela{min-width:28px;padding:2px}.estrela svg{width:20px;height:20px}.langs{position:absolute;top:10px;right:16px}.top-in{position:relative}}
 .novo{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ok-soft);color:var(--ok);margin-left:6px;vertical-align:middle}
 .skel{height:180px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 0,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;border:1px solid var(--line)}
 @media (prefers-reduced-motion:no-preference){
@@ -168,79 +187,93 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
 </style></head><body>
 <header class="top">
   <div class="top-in">
-    <div class="brand"><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg></span>Jev Filmes <span class="badge" id="modo">…</span></div>
-    <div class="uso" aria-live="polite" aria-label="Uso do Jev">
-      <div class="stat"><span>Custo da busca</span><b class="num" id="u-custo">—</b></div>
+    <div class="brand"><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg></span>JevMDB <span class="badge" id="modo">…</span></div>
+    <div class="uso" aria-live="polite" data-i18n-aria="uso_aria">
+      <div class="stat"><span data-i18n="uso_custo"></span><b class="num" id="u-custo">—</b></div>
       <div class="stat"><span>Tokens</span><b class="num" id="u-tokens">—</b></div>
-      <div class="stat"><span>Chamadas</span><b class="num" id="u-cham">—</b></div>
-      <div class="stat"><span>Tempo</span><b class="num" id="u-tempo">—</b></div>
-      <div class="stat total" title="Somado desde que o servidor foi iniciado"><span>Total gasto</span><b class="num" id="u-total">—</b></div>
+      <div class="stat"><span data-i18n="uso_chamadas"></span><b class="num" id="u-cham">—</b></div>
+      <div class="stat"><span data-i18n="uso_tempo"></span><b class="num" id="u-tempo">—</b></div>
+      <div class="stat total"><span data-i18n="uso_total"></span><b class="num" id="u-total">—</b></div>
     </div>
+    <nav class="langs" id="langs" data-i18n-aria="idioma_aria"></nav>
   </div>
 </header>
 
 <main class="wrap">
   <div class="hero">
-    <h1>Ache filmes <em>parecidos</em> com o que você gostou</h1>
-    <p>Escolha um filme e o que importa. O Jev compara a ficha dele com cada filme do catálogo e dá uma nota por critério.</p>
+    <h1 data-i18n-html="hero_h1"></h1>
+    <p data-i18n="hero_p"></p>
   </div>
 
   <section class="card search-card" id="busca">
     <div class="resumo">
       <span class="thumb" id="r-thumb"></span>
       <div class="txt"><b id="r-tit"></b><small id="r-sub"></small></div>
-      <button class="btn ghost" id="nova" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Nova pesquisa</button>
+      <button class="btn ghost" id="nova" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span data-i18n="nova"></span></button>
     </div>
     <form class="search" id="f" autocomplete="off">
-      <div class="tabs" role="tablist" aria-label="Como você quer buscar">
-        <button class="tab" role="tab" type="button" id="tab-filme" aria-selected="true" aria-controls="p-filme"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Escolher<span class="longo">&nbsp;filme</span></button>
-        <button class="tab" role="tab" type="button" id="tab-texto" aria-selected="false" aria-controls="p-texto" tabindex="-1"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Descrever<span class="longo">&nbsp;em texto</span></button>
+      <div class="tabs" role="tablist" data-i18n-aria="tabs_aria">
+        <button class="tab" role="tab" type="button" id="tab-filme" aria-selected="true" aria-controls="p-filme"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span data-i18n="tab_filme"></span><span class="longo" data-i18n="tab_filme_longo"></span></button>
+        <button class="tab" role="tab" type="button" id="tab-texto" aria-selected="false" aria-controls="p-texto" tabindex="-1"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="tab_texto"></span><span class="longo" data-i18n="tab_texto_longo"></span></button>
       </div>
 
       <div role="tabpanel" id="p-filme" aria-labelledby="tab-filme">
         <div class="field">
-          <label class="lbl" for="q">Filme de referência</label>
+          <label class="lbl" for="q" data-i18n="ref_lbl"></label>
           <div id="escolha" hidden></div>
           <div id="caixa">
             <div class="input"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              <input type="text" id="q" placeholder="Digite o nome em português ou o original: Matrix, O Juiz, Duna…" role="combobox" aria-expanded="false" aria-controls="sugs" aria-autocomplete="list"></div>
-            <ul class="sugs" id="sugs" role="listbox" aria-label="Filmes encontrados"></ul>
-            <p class="hint" id="q-hint">Busco no catálogo e no IMDb. Se o filme for novo, eu junto os dados do IMDb, do Wikidata e da Wikipedia e catalogo antes de comparar.</p>
+              <input type="text" id="q" data-i18n-ph="q_ph" role="combobox" aria-expanded="false" aria-controls="sugs" aria-autocomplete="list"></div>
+            <ul class="sugs" id="sugs" role="listbox" data-i18n-aria="sugs_aria"></ul>
+            <p class="hint" id="q-hint" data-i18n="q_hint"></p>
           </div>
         </div>
         <div class="field">
-          <span class="lbl" id="crit-lbl">Parecido em quê?</span>
+          <span class="lbl" id="crit-lbl" data-i18n="crit_lbl"></span>
           <div class="chips" id="crit" role="group" aria-labelledby="crit-lbl"></div>
-          <p class="hint">Marque um ou mais. Com mais de um, a nota final é a média das notas de cada critério.</p>
+          <p class="hint" data-i18n="crit_hint"></p>
         </div>
         <div class="field" id="tagbox" hidden>
-          <span class="lbl" id="tags-lbl">Estilo que importa</span>
+          <span class="lbl" id="tags-lbl" data-i18n="tags_lbl"></span>
           <div class="chips tags" id="tags" role="group" aria-labelledby="tags-lbl"></div>
         </div>
       </div>
 
       <div role="tabpanel" id="p-texto" aria-labelledby="tab-texto" hidden>
         <div class="field">
-          <label class="lbl" for="pedido">O que você procura?</label>
-          <textarea id="pedido" placeholder="Quero um filme parecido com O Juiz, aquele com o Stallone, no estilo ficção, futuro e distopia, e que seja da mesma época."></textarea>
-          <p class="hint" id="t-hint">Primeiro eu identifico o filme e você confirma. Só depois o Jev compara.</p>
+          <label class="lbl" for="pedido" data-i18n="pedido_lbl"></label>
+          <textarea id="pedido" data-i18n-ph="pedido_ph"></textarea>
+          <p class="hint" id="t-hint" data-i18n="t_hint"></p>
         </div>
         <div id="t-mais" class="field" hidden>
-          <label class="lbl" for="extra">Conte mais detalhes</label>
-          <textarea id="extra" style="min-height:80px" placeholder="Um ator, o ano, o diretor, uma cena marcante…"></textarea>
-          <div class="actions"><button class="btn" type="button" id="t-retentar">Tentar de novo</button></div>
+          <label class="lbl" for="extra" data-i18n="mais_lbl"></label>
+          <textarea id="extra" style="min-height:80px" data-i18n-ph="extra_ph"></textarea>
+          <div class="actions"><button class="btn" type="button" id="t-retentar" data-i18n="retentar"></button></div>
         </div>
         <div id="t-confirma" class="field" hidden></div>
       </div>
 
       <div class="actions">
-        <button class="btn" id="go" type="submit"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg><span id="go-txt">Buscar sugestões</span></button>
+        <button class="btn" id="go" type="submit"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg><span id="go-txt"></span></button>
       </div>
     </form>
   </section>
 
+  <section class="nota-busca" id="avaliar" hidden aria-live="polite">
+    <div id="av-estrelas" class="av-linha">
+      <span class="av-fim" data-i18n="av_ruim"></span>
+      <div class="estrelas" id="estrelas" role="radiogroup" data-i18n-aria="av_aria"></div>
+      <span class="av-fim" data-i18n="av_otimo"></span>
+    </div>
+    <form id="av-coment" class="av-linha" hidden>
+      <input type="text" id="av-texto" maxlength="1000" data-i18n-ph="av_ph">
+      <button class="btn" type="submit" data-i18n="av_enviar"></button>
+    </form>
+    <p id="av-ok" class="hint" hidden data-i18n="av_obrigado"></p>
+  </section>
+
   <section aria-live="polite">
-    <div class="res-head" id="res-head" hidden><h2>Sugestões</h2><span id="count"></span></div>
+    <div class="res-head" id="res-head" hidden><h2 data-i18n="sugestoes"></h2><span id="count"></span></div>
     <div id="out"></div>
   </section>
 </main>
@@ -248,10 +281,158 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const nf = (n, d = 0) => Number(n).toLocaleString("pt-BR", {minimumFractionDigits: d, maximumFractionDigits: d});
-const usd = n => "US$ " + Number(n).toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: n < 0.01 ? 5 : 4});
+const nf = (n, d = 0) => Number(n).toLocaleString(LOCALE, {minimumFractionDigits: d, maximumFractionDigits: d});
+const usd = n => "US$ " + Number(n).toLocaleString(LOCALE, {minimumFractionDigits: 2, maximumFractionDigits: n < 0.01 ? 5 : 4});
 const iniciais = t => esc(String(t || "?").split(/\s+/).filter(w => /\w/.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase());
 const capa = (url, t, cls) => url ? `<img class="${cls}" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="${cls}" aria-hidden="true">${iniciais(t)}</span>`;
+// ---------- Idiomas ----------
+const TXT = {
+  pt: {
+    uso_aria: "Uso do Jev", uso_custo: "Custo da busca", uso_chamadas: "Chamadas", uso_tempo: "Tempo", uso_total: "Total gasto",
+    total_title: "{b} buscas, {t} tokens desde {d}", idioma_aria: "Idioma",
+    hero_h1: "Ache filmes <em>parecidos</em> com o que você gostou",
+    hero_p: "Escolha um filme e o que importa. O Jev compara a ficha dele com cada filme do catálogo e dá uma nota por critério.",
+    nova: "Nova pesquisa", tabs_aria: "Como você quer buscar", tab_filme: "Escolher", tab_filme_longo: " filme", tab_texto: "Descrever", tab_texto_longo: " em texto",
+    ref_lbl: "Filme de referência", q_ph: "Digite o nome em português ou o original: Matrix, O Juiz, Duna…", sugs_aria: "Filmes encontrados",
+    q_hint: "Busco no catálogo e no IMDb. Se o filme for novo, eu junto os dados do IMDb, do Wikidata e da Wikipedia e catalogo antes de comparar.",
+    crit_lbl: "Parecido em quê?", crit_hint: "Marque um ou mais. Com mais de um, a nota final é a média das notas de cada critério.", tags_lbl: "Estilo que importa",
+    pedido_lbl: "O que você procura?", pedido_ph: "Quero um filme parecido com O Juiz, aquele com o Stallone, no estilo ficção, futuro e distopia, e que seja da mesma época.",
+    t_hint: "Primeiro eu identifico o filme e você confirma. Só depois o Jev compara.",
+    t_hint_ia: "Uma IA identifica o filme pelo texto, mesmo com erro de digitação ou fora do catálogo, e você confirma. Depois o Jev compara.",
+    mais_lbl: "Conte mais detalhes", extra_ph: "Um ator, o ano, o diretor, uma cena marcante…", retentar: "Tentar de novo",
+    av_ruim: "muito ruim", av_otimo: "excelente", av_aria: "Dê uma nota de 1 a 10 para estas sugestões", av_estrela: "{n} de 10",
+    av_ph: "Se quiser deixar algum comentário, fique à vontade", av_enviar: "Enviar", av_obrigado: "Obrigado pela avaliação!", sugestoes: "Sugestões",
+    modo_on: "Jev conectado · {m}", modo_sim: "modo simulado", procurando: "Procurando…", ano_q: "ano ?", no_catalogo: "no catálogo",
+    q_hint_ok: "Escolha o filme certo na lista. Se não aparecer, confira a grafia ou tente o título original.",
+    q_hint_vazio: "Não achei nada com esse nome. Confira a grafia ou tente o título original.", q_hint_erro: "Não consegui buscar agora. Tente de novo.",
+    ja_catalogo: "Já está no catálogo.", novo_catalogar: "Novo: vou catalogar com IMDb, Wikidata e Wikipedia antes de comparar.", trocar: "Trocar",
+    go_identificar: "Identificar o filme", go_buscar: "Buscar sugestões", sem_info: "sem informação", sem_streaming: "não está em streaming no {p} agora",
+    pais: { BR: "Brasil", US: "EUA", MX: "México" }, identificando: "Identificando o filme…", erro_identificar: "Erro ao identificar",
+    nao_identifiquei: "Não consegui identificar o filme. Conte mais detalhes.", e_este: "É este o filme?", ou_seria: "Ou seria um destes?",
+    entendi_crit: "Entendi que você quer parecido em (pode mudar):", crit_aria: "Critérios", sim_buscar: "Sim, buscar parecidos", nao_e: "Não é esse",
+    nao_e_mais: "Não é esse? Conte mais detalhes: um ator, o ano, uma cena…", consultando: "Consultando o Jev…", cota_sub: "Consulta grátis já usada",
+    cota_msg: "<b>Você já usou sua consulta grátis.</b><br>Em breve: crie sua conta grátis pelo WhatsApp e ganhe mais buscas.",
+    erro_consultar: "Erro ao consultar", criterios_sub: "Critérios: {c}", catalogado_agora: "catalogado agora", pelo_texto: "pelo seu texto",
+    count: "top {n} de {t} avaliados", onde_lbl: "Onde assistir:", aria_sim: "{v}% de similaridade", media: "média", similaridade: "similaridade",
+    credito: "Onde assistir: dados JustWatch", nenhuma: "Nenhuma sugestão.", nao_deu: "Não deu certo", fonte: "Fonte",
+    crit: { estilo: "Estilo", atores: "Atores", ano: "Ano", enredo: "Enredo" },
+    oferta: { assinatura: "assinatura", gratis: "grátis", anuncios: "grátis com anúncios", aluguel: "aluguel", compra: "compra" },
+    erro: { pedido_vazio: "Escreva o que você procura.", sem_dados: "Achei o filme no IMDb, mas as fontes não trazem sinopse nem gênero para comparar. Tente outro título.",
+      filme_nao_encontrado: "Não encontrei esse filme no IMDb nem na Wikipedia. Confira o título.", nao_identificado: "Não consegui identificar o filme no seu texto. Tente citar o título, o ano ou um ator.",
+      fora_catalogo: "O filme do pedido ainda não está no catálogo. Use a aba Escolher filme para procurar e catalogar.", sem_referencia: "Informe o filme de referência ou escreva um pedido.",
+      avaliacao_invalida: "Não consegui registrar a avaliação." },
+    lang_nome: "Português",
+  },
+  en: {
+    uso_aria: "Jev usage", uso_custo: "Search cost", uso_chamadas: "Calls", uso_tempo: "Time", uso_total: "Total spent",
+    total_title: "{b} searches, {t} tokens since {d}", idioma_aria: "Language",
+    hero_h1: "Find movies <em>similar</em> to the ones you loved",
+    hero_p: "Pick a movie and what matters to you. Jev compares it with every movie in the catalog and scores each criterion.",
+    nova: "New search", tabs_aria: "How do you want to search", tab_filme: "Pick", tab_filme_longo: " a movie", tab_texto: "Describe", tab_texto_longo: " in words",
+    ref_lbl: "Reference movie", q_ph: "Type the title: The Matrix, Judge Dredd, Dune…", sugs_aria: "Movies found",
+    q_hint: "I search the catalog and IMDb. If the movie is new, I gather data from IMDb, Wikidata and Wikipedia and add it to the catalog before comparing.",
+    crit_lbl: "Similar in what?", crit_hint: "Pick one or more. With more than one, the final score is the average of the criteria scores.", tags_lbl: "Style that matters",
+    pedido_lbl: "What are you looking for?", pedido_ph: "I want something like Judge Dredd, the one with Stallone, sci-fi, future and dystopia, from the same era.",
+    t_hint: "First I identify the movie and you confirm. Only then does Jev compare.",
+    t_hint_ia: "An AI identifies the movie from your text, even with typos or if it's not in the catalog, and you confirm. Then Jev compares.",
+    mais_lbl: "Tell me more", extra_ph: "An actor, the year, the director, a memorable scene…", retentar: "Try again",
+    av_ruim: "very bad", av_otimo: "excellent", av_aria: "Rate these suggestions from 1 to 10", av_estrela: "{n} of 10",
+    av_ph: "Feel free to leave a comment if you like", av_enviar: "Send", av_obrigado: "Thanks for your rating!", sugestoes: "Suggestions",
+    modo_on: "Jev connected · {m}", modo_sim: "simulated mode", procurando: "Searching…", ano_q: "year ?", no_catalogo: "in catalog",
+    q_hint_ok: "Pick the right movie from the list. If it's not there, check the spelling or try the original title.",
+    q_hint_vazio: "Nothing found with that name. Check the spelling or try the original title.", q_hint_erro: "Couldn't search right now. Please try again.",
+    ja_catalogo: "Already in the catalog.", novo_catalogar: "New: I'll catalog it with IMDb, Wikidata and Wikipedia before comparing.", trocar: "Change",
+    go_identificar: "Identify the movie", go_buscar: "Find suggestions", sem_info: "no information", sem_streaming: "not streaming in the {p} right now",
+    pais: { BR: "Brazil", US: "US", MX: "Mexico" }, identificando: "Identifying the movie…", erro_identificar: "Couldn't identify",
+    nao_identifiquei: "I couldn't identify the movie. Tell me more.", e_este: "Is this the movie?", ou_seria: "Or is it one of these?",
+    entendi_crit: "I understood you want it similar in (you can change it):", crit_aria: "Criteria", sim_buscar: "Yes, find similar", nao_e: "That's not it",
+    nao_e_mais: "Not it? Tell me more: an actor, the year, a scene…", consultando: "Asking Jev…", cota_sub: "Free search already used",
+    cota_msg: "<b>You've already used your free search.</b><br>Coming soon: create your free account via WhatsApp and get more searches.",
+    erro_consultar: "Search failed", criterios_sub: "Criteria: {c}", catalogado_agora: "just cataloged", pelo_texto: "from your text",
+    count: "top {n} of {t} compared", onde_lbl: "Where to watch:", aria_sim: "{v}% similar", media: "average", similaridade: "similarity",
+    credito: "Where to watch: data by JustWatch", nenhuma: "No suggestions.", nao_deu: "Something went wrong", fonte: "Source",
+    crit: { estilo: "Style", atores: "Cast", ano: "Year", enredo: "Plot" },
+    oferta: { assinatura: "subscription", gratis: "free", anuncios: "free with ads", aluguel: "rent", compra: "buy" },
+    erro: { pedido_vazio: "Write what you're looking for.", sem_dados: "I found the movie on IMDb, but the sources have no synopsis or genre to compare. Try another title.",
+      filme_nao_encontrado: "I couldn't find that movie on IMDb or Wikipedia. Check the title.", nao_identificado: "I couldn't identify the movie in your text. Try mentioning the title, year or an actor.",
+      fora_catalogo: "That movie isn't in the catalog yet. Use the Pick a movie tab to search and add it.", sem_referencia: "Pick a reference movie or write a request.",
+      avaliacao_invalida: "Couldn't save your rating." },
+    lang_nome: "English",
+  },
+  es: {
+    uso_aria: "Uso de Jev", uso_custo: "Costo de la búsqueda", uso_chamadas: "Llamadas", uso_tempo: "Tiempo", uso_total: "Total gastado",
+    total_title: "{b} búsquedas, {t} tokens desde {d}", idioma_aria: "Idioma",
+    hero_h1: "Encuentra películas <em>parecidas</em> a las que te gustaron",
+    hero_p: "Elige una película y lo que te importa. Jev la compara con cada película del catálogo y da una nota por criterio.",
+    nova: "Nueva búsqueda", tabs_aria: "Cómo quieres buscar", tab_filme: "Elegir", tab_filme_longo: " película", tab_texto: "Describir", tab_texto_longo: " en texto",
+    ref_lbl: "Película de referencia", q_ph: "Escribe el título: Matrix, El Juez, Dune…", sugs_aria: "Películas encontradas",
+    q_hint: "Busco en el catálogo y en IMDb. Si la película es nueva, reúno los datos de IMDb, Wikidata y Wikipedia y la catalogo antes de comparar.",
+    crit_lbl: "¿Parecida en qué?", crit_hint: "Marca uno o más. Con más de uno, la nota final es el promedio de las notas de cada criterio.", tags_lbl: "Estilo que importa",
+    pedido_lbl: "¿Qué buscas?", pedido_ph: "Quiero algo parecido a El Juez, la de Stallone, de ciencia ficción, futuro y distopía, de la misma época.",
+    t_hint: "Primero identifico la película y tú confirmas. Solo después Jev compara.",
+    t_hint_ia: "Una IA identifica la película por el texto, incluso con errores de escritura o fuera del catálogo, y tú confirmas. Después Jev compara.",
+    mais_lbl: "Cuéntame más", extra_ph: "Un actor, el año, el director, una escena memorable…", retentar: "Intentar de nuevo",
+    av_ruim: "muy mala", av_otimo: "excelente", av_aria: "Califica estas sugerencias del 1 al 10", av_estrela: "{n} de 10",
+    av_ph: "Si quieres dejar un comentario, siéntete libre", av_enviar: "Enviar", av_obrigado: "¡Gracias por tu calificación!", sugestoes: "Sugerencias",
+    modo_on: "Jev conectado · {m}", modo_sim: "modo simulado", procurando: "Buscando…", ano_q: "año ?", no_catalogo: "en el catálogo",
+    q_hint_ok: "Elige la película correcta de la lista. Si no aparece, revisa la ortografía o prueba el título original.",
+    q_hint_vazio: "No encontré nada con ese nombre. Revisa la ortografía o prueba el título original.", q_hint_erro: "No pude buscar ahora. Inténtalo de nuevo.",
+    ja_catalogo: "Ya está en el catálogo.", novo_catalogar: "Nueva: la catalogaré con IMDb, Wikidata y Wikipedia antes de comparar.", trocar: "Cambiar",
+    go_identificar: "Identificar la película", go_buscar: "Buscar sugerencias", sem_info: "sin información", sem_streaming: "no está en streaming en {p} ahora",
+    pais: { BR: "Brasil", US: "EE. UU.", MX: "México" }, identificando: "Identificando la película…", erro_identificar: "Error al identificar",
+    nao_identifiquei: "No pude identificar la película. Cuéntame más.", e_este: "¿Es esta la película?", ou_seria: "¿O es una de estas?",
+    entendi_crit: "Entendí que la quieres parecida en (puedes cambiarlo):", crit_aria: "Criterios", sim_buscar: "Sí, buscar parecidas", nao_e: "No es esa",
+    nao_e_mais: "¿No es esa? Cuéntame más: un actor, el año, una escena…", consultando: "Consultando a Jev…", cota_sub: "Búsqueda gratis ya usada",
+    cota_msg: "<b>Ya usaste tu búsqueda gratis.</b><br>Próximamente: crea tu cuenta gratis por WhatsApp y obtén más búsquedas.",
+    erro_consultar: "Error al consultar", criterios_sub: "Criterios: {c}", catalogado_agora: "catalogada ahora", pelo_texto: "por tu texto",
+    count: "top {n} de {t} comparadas", onde_lbl: "Dónde ver:", aria_sim: "{v}% de similitud", media: "promedio", similaridade: "similitud",
+    credito: "Dónde ver: datos de JustWatch", nenhuma: "Ninguna sugerencia.", nao_deu: "Algo salió mal", fonte: "Fuente",
+    crit: { estilo: "Estilo", atores: "Reparto", ano: "Año", enredo: "Trama" },
+    oferta: { assinatura: "suscripción", gratis: "gratis", anuncios: "gratis con anuncios", aluguel: "alquiler", compra: "compra" },
+    erro: { pedido_vazio: "Escribe lo que buscas.", sem_dados: "Encontré la película en IMDb, pero las fuentes no tienen sinopsis ni género para comparar. Prueba otro título.",
+      filme_nao_encontrado: "No encontré esa película en IMDb ni en Wikipedia. Revisa el título.", nao_identificado: "No pude identificar la película en tu texto. Intenta mencionar el título, el año o un actor.",
+      fora_catalogo: "Esa película aún no está en el catálogo. Usa la pestaña Elegir película para buscarla y agregarla.", sem_referencia: "Elige una película de referencia o escribe un pedido.",
+      avaliacao_invalida: "No pude registrar tu calificación." },
+    lang_nome: "Español",
+  },
+};
+const LOCALES = { pt: "pt-BR", en: "en-US", es: "es-MX" }, REGIAO = { pt: "BR", en: "US", es: "MX" };
+function idiomaInicial() {
+  const q = new URLSearchParams(location.search).get("lang");
+  if (TXT[q]) return q;
+  try { const s = localStorage.getItem("jevmdb_lang"); if (TXT[s]) return s; } catch {}
+  const n = (navigator.language || "pt").slice(0, 2);
+  return TXT[n] ? n : "pt";
+}
+const LANG = idiomaInicial(), LOCALE = LOCALES[LANG];
+// T("chave", {var: valor}); aceita chave com ponto, ex.: "crit.estilo"
+function T(k, v = {}) {
+  const pega = d => k.split(".").reduce((o, p) => o?.[p], d);
+  const s = pega(TXT[LANG]) ?? pega(TXT.pt) ?? k;
+  return typeof s === "string" ? s.replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "") : s;
+}
+const erroTxt = d => (d?.codigo && TXT[LANG].erro[d.codigo]) || d?.erro || T("nao_deu");
+const api = (url, opts = {}) => fetch(url, {...opts, headers: {...(opts.headers || {}), "X-Jev-Lang": LANG}});
+function aplicarTextos() {
+  document.documentElement.lang = LOCALE;
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = T(el.dataset.i18n));
+  document.querySelectorAll("[data-i18n-html]").forEach(el => el.innerHTML = T(el.dataset.i18nHtml));
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = T(el.dataset.i18nPh));
+  document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", T(el.dataset.i18nAria)));
+  // Bandeiras redondas: mostra só os outros dois idiomas
+  const BANDEIRA = {
+    pt: `<svg viewBox="0 0 32 32"><rect width="32" height="32" fill="#009c3b"/><path d="M16 5 29 16 16 27 3 16z" fill="#ffdf00"/><circle cx="16" cy="16" r="6" fill="#002776"/></svg>`,
+    en: `<svg viewBox="0 0 32 32"><rect width="32" height="32" fill="#fff"/>${[0,2,4,6,8,10,12].map(i => `<rect y="${i * 32 / 13}" width="32" height="${32 / 13}" fill="#b22234"/>`).join("")}<rect width="15" height="17.2" fill="#3c3b6e"/></svg>`,
+    es: `<svg viewBox="0 0 32 32"><rect width="32" height="32" fill="#c60b1e"/><rect y="8" width="32" height="16" fill="#ffc400"/></svg>`,
+  };
+  $("#langs").innerHTML = Object.keys(TXT).filter(l => l !== LANG).map(l =>
+    `<button type="button" class="lang" data-lang="${l}" title="${TXT[l].lang_nome}" aria-label="${TXT[l].lang_nome}">${BANDEIRA[l]}</button>`).join("");
+  $("#langs").querySelectorAll(".lang").forEach(b => b.onclick = () => {
+    try { localStorage.setItem("jevmdb_lang", b.dataset.lang); } catch {}
+    const u = new URL(location.href); u.searchParams.set("lang", b.dataset.lang); location.href = u.toString();
+  });
+}
+aplicarTextos();
 let CAT = [], NOMES = {}, ESCOLHIDO = null, ABA = "filme";
 let TX = {cand: null, alts: [], rejeitados: [], criterios: []}; // estado da aba de texto
 
@@ -280,19 +461,19 @@ function mostrarUso(u, total) {
     $("#u-tempo").textContent = nf(u.tempo_ms / 1000, 1) + " s";
   }
   if (total) $("#u-total").textContent = usd(total.custo_usd);
-  if (total) $("#u-total").parentElement.title = `${nf(total.buscas)} buscas, ${nf(total.input_tokens + total.output_tokens)} tokens desde ${new Date(total.desde).toLocaleString("pt-BR")}`;
+  if (total) $("#u-total").parentElement.title = T("total_title", {b: nf(total.buscas), t: nf(total.input_tokens + total.output_tokens), d: new Date(total.desde).toLocaleString(LOCALE)});
 }
 function limparUso() { ["#u-custo", "#u-tokens", "#u-cham", "#u-tempo"].forEach(s => $(s).textContent = "…"); }
 
-fetch("/api/catalogo").then(r => r.json()).then(d => {
-  CAT = d.filmes; NOMES = d.criterios;
+api("/api/catalogo").then(r => r.json()).then(d => {
+  CAT = d.filmes; NOMES = Object.fromEntries(Object.keys(d.criterios).map(k => [k, T("crit." + k)]));
   const on = d.modo === "jev";
-  $("#modo").textContent = on ? `Jev conectado · ${d.modelo}` : "modo simulado";
+  $("#modo").textContent = on ? T("modo_on", {m: d.modelo}) : T("modo_sim");
   $("#modo").classList.toggle("on", on);
   $("#crit").innerHTML = Object.entries(NOMES).map(([k, n]) => `<label class="chip"><input type="checkbox" value="${k}" id="c-${k}" ${k === "estilo" ? "checked" : ""}><span>${esc(n)}</span></label>`).join("");
   if (d.mostrar_uso === false) document.querySelector(".uso").hidden = true;
   mostrarUso(null, d.uso_total);
-  if (d.ia_texto) $("#t-hint").textContent = "Uma IA identifica o filme pelo texto, mesmo com erro de digitação ou fora do catálogo, e você confirma. Depois o Jev compara.";
+  if (d.ia_texto) $("#t-hint").textContent = T("t_hint_ia");
 });
 
 // ---------- Abas exclusivas ----------
@@ -330,21 +511,20 @@ $("#sugs").addEventListener("keydown", e => {
 });
 async function procurar(q) {
   ultimaQ = q;
-  $("#q-hint").textContent = "Procurando…";
+  $("#q-hint").textContent = T("procurando");
   try {
-    const d = await (await fetch("/api/buscar-filme?q=" + encodeURIComponent(q))).json();
+    const d = await (await api("/api/buscar-filme?q=" + encodeURIComponent(q))).json();
     if (q !== ultimaQ) return;
     const lista = d.resultados || [];
     $("#sugs").innerHTML = lista.map((f, i) => `<li><button type="button" class="sug" role="option" data-i="${i}">
       ${capa(f.poster, f.titulo, "thumb")}
       <span><b>${esc(f.titulo)}${f.titulo_original && f.titulo_original !== f.titulo ? ` <small style="display:inline">· ${esc(f.titulo_original)}</small>` : ""}</b>
-      <small>${f.ano || "ano ?"}${f.atores?.length ? " · " + esc(f.atores.join(", ")) : ""}</small></span>
-      <span class="pill ${f.no_catalogo ? "" : "ext"}">${f.no_catalogo ? "no catálogo" : "IMDb"}</span></button></li>`).join("");
+      <small>${f.ano || T("ano_q")}${f.atores?.length ? " · " + esc(f.atores.join(", ")) : ""}</small></span>
+      <span class="pill ${f.no_catalogo ? "" : "ext"}">${f.no_catalogo ? T("no_catalogo") : "IMDb"}</span></button></li>`).join("");
     $("#sugs").querySelectorAll(".sug").forEach(b => b.onclick = () => escolher(lista[b.dataset.i]));
     $("#q").setAttribute("aria-expanded", lista.length ? "true" : "false");
-    $("#q-hint").textContent = lista.length ? "Escolha o filme certo na lista. Se não aparecer, confira a grafia ou tente o título original."
-      : "Não achei nada com esse nome. Confira a grafia ou tente o título original.";
-  } catch { $("#q-hint").textContent = "Não consegui buscar agora. Tente de novo."; }
+    $("#q-hint").textContent = lista.length ? T("q_hint_ok") : T("q_hint_vazio");
+  } catch { $("#q-hint").textContent = T("q_hint_erro"); }
 }
 function escolher(f) {
   ESCOLHIDO = f;
@@ -352,8 +532,8 @@ function escolher(f) {
   $("#caixa").hidden = true; $("#escolha").hidden = false;
   $("#escolha").innerHTML = `<div class="chosen">${capa(f.poster, f.titulo, "thumb")}
     <div><b>${esc(f.titulo)}</b><small>${esc(f.titulo_original && f.titulo_original !== f.titulo ? f.titulo_original + " · " : "")}${f.ano || ""}${f.atores?.length ? " · " + esc(f.atores.join(", ")) : ""}</small><br>
-    <small>${f.no_catalogo ? "Já está no catálogo." : "Novo: vou catalogar com IMDb, Wikidata e Wikipedia antes de comparar."}</small></div>
-    <button type="button" class="link" id="trocar">Trocar</button></div>`;
+    <small>${f.no_catalogo ? T("ja_catalogo") : T("novo_catalogar")}</small></div>
+    <button type="button" class="link" id="trocar">${T("trocar")}</button></div>`;
   $("#trocar").onclick = () => { ESCOLHIDO = null; $("#escolha").hidden = true; $("#caixa").hidden = false; $("#q").focus(); atualizarTags(); validar(); };
   atualizarTags(); validar();
 }
@@ -363,14 +543,14 @@ function atualizarTags() {
   $("#tagbox").hidden = !(f && f.estilo?.length && $("#c-estilo")?.checked);
   if (!f || $("#tags").dataset.id === f.id) return;
   $("#tags").dataset.id = f.id;
-  $("#tags").innerHTML = f.estilo.map(t => `<label class="chip"><input type="checkbox" value="${esc(t)}" checked><span>${esc(t)}</span></label>`).join("");
+  $("#tags").innerHTML = f.estilo.map((t, i) => `<label class="chip"><input type="checkbox" value="${esc(t)}" checked><span>${esc(f.estilo_tr?.[i] || t)}</span></label>`).join("");
 }
 $("#crit").addEventListener("change", () => { atualizarTags(); validar(); });
 $("#pedido").addEventListener("input", () => { TX = {cand: null, alts: [], rejeitados: [], criterios: []}; $("#t-confirma").hidden = true; $("#t-mais").hidden = true; validar(); });
 function criteriosMarcados() { return [...document.querySelectorAll("#crit input:checked")].map(i => i.value); }
 function validar() {
   const texto = ABA === "texto";
-  $("#go-txt").textContent = texto ? "Identificar o filme" : "Buscar sugestões";
+  $("#go-txt").textContent = texto ? T("go_identificar") : T("go_buscar");
   $("#go").hidden = texto && (!!TX.cand || !$("#t-mais").hidden);
   $("#go").disabled = texto ? $("#pedido").value.trim().length < 5 : !(ESCOLHIDO && criteriosMarcados().length);
 }
@@ -391,29 +571,28 @@ $("#nova").onclick = () => {
 // ---------- Onde assistir (carrega depois dos resultados) ----------
 async function carregarOnde(ids) {
   let dados = {};
-  try { dados = await (await fetch("/api/onde-assistir?ids=" + ids.map(encodeURIComponent).join(","))).json(); } catch {}
+  try { dados = await (await api("/api/onde-assistir?ids=" + ids.map(encodeURIComponent).join(","))).json(); } catch {}
   document.querySelectorAll(".onde[data-id]").forEach(el => {
     const o = dados[el.dataset.id], span = el.querySelector("span");
-    if (!o) { span.textContent = "sem informação"; return; }
-    if (!o.plataformas.length) { span.textContent = "não está em streaming no Brasil agora"; return; }
-    span.outerHTML = o.plataformas.slice(0, 6).map(p => `<span class="prov">${p.logo ? `<img src="${esc(p.logo)}" alt="" loading="lazy">` : ""}${esc(p.nome)} <small>${esc(p.tipo)}</small></span>`).join("");
+    if (!o) { span.textContent = T("sem_info"); return; }
+    if (!o.plataformas.length) { span.textContent = T("sem_streaming", {p: T("pais." + REGIAO[LANG])}); return; }
+    span.outerHTML = o.plataformas.slice(0, 6).map(p => `<span class="prov">${p.logo ? `<img src="${esc(p.logo)}" alt="" loading="lazy">` : ""}${esc(p.nome)} <small>${esc(T("oferta." + p.tipo))}</small></span>`).join("");
   });
 }
 
-// ---------- Busca de sugestões ----------
 // ---------- Aba de texto: identificar, confirmar, ou pedir mais detalhes ----------
 async function identificar() {
   const pedido = [$("#pedido").value, $("#extra").value].map(s => s.trim()).filter(Boolean).join("\n");
   $("#go").disabled = true; $("#t-retentar").disabled = true;
-  $("#t-confirma").hidden = false; $("#t-confirma").innerHTML = `<p class="hint">Identificando o filme…</p>`;
+  $("#t-confirma").hidden = false; $("#t-confirma").innerHTML = `<p class="hint">${T("identificando")}</p>`;
   limparUso();
   try {
-    const r = await fetch("/api/identificar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pedido, rejeitados: TX.rejeitados})});
+    const r = await api("/api/identificar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pedido, rejeitados: TX.rejeitados})});
     const d = await r.json();
     mostrarUso(d.uso, d.uso_total);
-    if (!r.ok) throw new Error(d.erro || "Erro ao identificar");
+    if (!r.ok) throw new Error(erroTxt(d));
     TX.cand = d.candidato; TX.alts = d.alternativas || []; TX.criterios = d.criterios || ["estilo"];
-    if (!TX.cand) { $("#t-confirma").hidden = true; pedirMais("Não consegui identificar o filme. Conte mais detalhes."); return; }
+    if (!TX.cand) { $("#t-confirma").hidden = true; pedirMais(T("nao_identifiquei")); return; }
     $("#t-mais").hidden = true;
     mostrarConfirmacao();
   } catch (err) {
@@ -422,20 +601,20 @@ async function identificar() {
 }
 function pedirMais(msg) {
   TX.cand = null; $("#t-mais").hidden = false;
-  $("#t-mais .lbl").textContent = msg || "Conte mais detalhes";
+  $("#t-mais .lbl").textContent = msg || T("mais_lbl");
   $("#extra").focus(); validar();
 }
 function mostrarConfirmacao() {
   const c = TX.cand;
-  $("#t-confirma").innerHTML = `<span class="lbl">É este o filme?</span>
+  $("#t-confirma").innerHTML = `<span class="lbl">${T("e_este")}</span>
     <div class="chosen">${capa(c.poster, c.titulo, "thumb")}
       <div><b>${esc(c.titulo)}</b><small>${esc(c.titulo_original && c.titulo_original !== c.titulo ? c.titulo_original + " · " : "")}${c.ano || ""}${c.atores?.length ? " · " + esc(c.atores.join(", ")) : ""}</small></div><span></span></div>
-    ${TX.alts.length ? `<p class="sub-lbl">Ou seria um destes?</p><ul class="alts">${TX.alts.map((a, i) => `<li><button type="button" class="sug" data-alt="${i}">${capa(a.poster, a.titulo, "thumb")}<span><b>${esc(a.titulo)}</b><small>${a.ano || ""}${a.atores?.length ? " · " + esc(a.atores.join(", ")) : ""}</small></span><span></span></button></li>`).join("")}</ul>` : ""}
-    <p class="sub-lbl">Entendi que você quer parecido em (pode mudar):</p>
-    <div class="chips" id="crit-t" role="group" aria-label="Critérios">${Object.entries(NOMES).map(([k, n]) => `<label class="chip"><input type="checkbox" value="${k}" ${TX.criterios.includes(k) ? "checked" : ""}><span>${esc(n)}</span></label>`).join("")}</div>
+    ${TX.alts.length ? `<p class="sub-lbl">${T("ou_seria")}</p><ul class="alts">${TX.alts.map((a, i) => `<li><button type="button" class="sug" data-alt="${i}">${capa(a.poster, a.titulo, "thumb")}<span><b>${esc(a.titulo)}</b><small>${a.ano || ""}${a.atores?.length ? " · " + esc(a.atores.join(", ")) : ""}</small></span><span></span></button></li>`).join("")}</ul>` : ""}
+    <p class="sub-lbl">${T("entendi_crit")}</p>
+    <div class="chips" id="crit-t" role="group" aria-label="${T("crit_aria")}">${Object.entries(NOMES).map(([k, n]) => `<label class="chip"><input type="checkbox" value="${k}" ${TX.criterios.includes(k) ? "checked" : ""}><span>${esc(n)}</span></label>`).join("")}</div>
     <div class="actions" style="margin-top:16px">
-      <button class="btn" type="button" id="t-sim"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Sim, buscar parecidos</button>
-      <button class="btn ghost" type="button" id="t-nao">Não é esse</button>
+      <button class="btn" type="button" id="t-sim"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>${T("sim_buscar")}</button>
+      <button class="btn ghost" type="button" id="t-nao">${T("nao_e")}</button>
     </div>`;
   $("#t-confirma").querySelectorAll("[data-alt]").forEach(b => b.onclick = () => {
     const i = Number(b.dataset.alt); [TX.cand, TX.alts[i]] = [TX.alts[i], TX.cand]; guardarCriterios(); mostrarConfirmacao();
@@ -447,11 +626,39 @@ function mostrarConfirmacao() {
   $("#t-nao").onclick = () => {
     TX.rejeitados.push({imdb: c.imdb, id: c.id, titulo: c.titulo_original || c.titulo, ano: c.ano}, ...TX.alts.map(a => ({imdb: a.imdb, id: a.id, titulo: a.titulo_original || a.titulo, ano: a.ano})));
     $("#t-confirma").hidden = true;
-    pedirMais("Não é esse? Conte mais detalhes: um ator, o ano, uma cena…");
+    pedirMais(T("nao_e_mais"));
   };
   validar();
 }
 $("#t-retentar").onclick = () => { if ($("#extra").value.trim() || $("#pedido").value.trim()) identificar(); };
+
+// ---------- Avaliação da busca (1 a 10 estrelas + comentário opcional) ----------
+let BUSCA_ID = null;
+const ESTRELA = `<svg viewBox="0 0 24 24"><path d="m12 2.5 2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>`;
+function mostrarAvaliacao(id) {
+  BUSCA_ID = id; if (!id) return;
+  $("#avaliar").hidden = false; $("#av-estrelas").hidden = false; $("#av-coment").hidden = true; $("#av-ok").hidden = true;
+  $("#estrelas").innerHTML = Array.from({length: 10}, (_, i) =>
+    `<button type="button" class="estrela" role="radio" aria-checked="false" data-n="${i + 1}" aria-label="${T("av_estrela", {n: i + 1})}">${ESTRELA}</button>`).join("");
+  const botoes = [...document.querySelectorAll("#estrelas .estrela")];
+  const acender = n => botoes.forEach((b, i) => b.classList.toggle("on", i < n));
+  botoes.forEach(b => {
+    b.onmouseenter = b.onfocus = () => acender(Number(b.dataset.n));
+    b.onclick = () => avaliar({estrelas: Number(b.dataset.n)}).then(() => {
+      $("#av-estrelas").hidden = true; $("#av-coment").hidden = false; $("#av-texto").value = ""; $("#av-texto").focus();
+    });
+  });
+  $("#estrelas").onmouseleave = () => acender(0);
+}
+async function avaliar(dados) {
+  try { await api("/api/avaliar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({busca_id: BUSCA_ID, ...dados})}); } catch {}
+}
+$("#av-coment").addEventListener("submit", async e => {
+  e.preventDefault();
+  const txt = $("#av-texto").value.trim();
+  if (txt) await avaliar({comentario: txt});
+  $("#av-coment").hidden = true; $("#av-ok").hidden = false;
+});
 
 // ---------- Busca de sugestões ----------
 $("#f").addEventListener("submit", e => {
@@ -463,27 +670,29 @@ $("#f").addEventListener("submit", e => {
 });
 
 async function buscar(body, titulo, poster, peloTexto) {
-  recolher(titulo, "Consultando o Jev…", poster);
+  recolher(titulo, T("consultando"), poster);
+  $("#avaliar").hidden = true;
   $("#res-head").hidden = false; $("#count").textContent = "";
   $("#out").innerHTML = `<div class="lista">${'<div class="skel"></div>'.repeat(3)}</div>`;
   limparUso();
   $("#go").disabled = true;
   try {
-    const r = await fetch("/api/recomendar", {method: "POST", headers: {"Content-Type": "application/json", "X-Jev-FP": await FP}, body: JSON.stringify(body)});
+    const r = await api("/api/recomendar", {method: "POST", headers: {"Content-Type": "application/json", "X-Jev-FP": await FP}, body: JSON.stringify(body)});
     const d = await r.json();
     mostrarUso(d.uso || {custo_usd: 0, input_tokens: 0, output_tokens: 0, chamadas: 0, tempo_ms: 0}, d.uso_total);
     if (r.status === 402) {
-      $("#r-sub").textContent = "Consulta grátis já usada";
-      $("#out").innerHTML = `<div class="card msg"><b>Você já usou sua consulta grátis.</b><br>Em breve: cadastre seu telefone e receba um código pelo WhatsApp para ganhar 4 rodadas por mês.</div>`;
+      $("#r-sub").textContent = T("cota_sub");
+      $("#out").innerHTML = `<div class="card msg">${T("cota_msg")}</div>`;
       return;
     }
-    if (!r.ok) throw new Error(d.erro || "Erro ao consultar");
+    if (!r.ok) throw new Error(erroTxt(d));
+    mostrarAvaliacao(d.busca_id);
     const ref = d.referencia;
     if (d.importado) CAT.push(ref);
     if (!peloTexto && !ESCOLHIDO.id) { ESCOLHIDO = {...ESCOLHIDO, id: ref.id, no_catalogo: true}; }
     if (peloTexto && TX.cand && !TX.cand.id) TX.cand = {...TX.cand, id: ref.id, no_catalogo: true};
-    recolher(`${ref.titulo_br} (${ref.ano})`, `Critérios: ${d.criterios.map(c => NOMES[c]).join(", ")}${d.importado ? " · catalogado agora" : ""}${peloTexto ? " · pelo seu texto" : ""}`, ref.poster);
-    $("#count").textContent = `top ${d.ranking.length} de ${d.candidatos_avaliados} avaliados`;
+    recolher(`${ref.titulo_br} (${ref.ano})`, T("criterios_sub", {c: d.criterios.map(c => NOMES[c]).join(", ")}) + (d.importado ? " · " + T("catalogado_agora") : "") + (peloTexto ? " · " + T("pelo_texto") : ""), ref.poster);
+    $("#count").textContent = T("count", {n: d.ranking.length, t: d.candidatos_avaliados});
     const varios = d.criterios.length > 1;
     $("#out").innerHTML = d.ranking.length ? `<ol class="lista">${d.ranking.map((f, i) => `
       <li class="card filme">
@@ -495,16 +704,16 @@ async function buscar(body, titulo, poster, peloTexto) {
           ${varios ? `<div class="crits">${d.criterios.map(c => `<div class="crit"><span>${esc(NOMES[c])}</span><div class="meter"><i style="width:${f.notas[c]}%"></i></div><b class="num">${f.notas[c]}</b></div>`).join("")}</div>` : ""}
           <div class="tagsl">${(f.estilo || []).slice(0, 5).map(t => `<span>${esc(t)}</span>`).join("")}</div>
           <p class="syn">${esc(f.sinopse)}</p>
-          <div class="fontes">${(f.fontes || [{nome: "Fonte", url: f.fonte}]).concat(f.imdb && !(f.fontes || []).some(x => x.nome === "IMDb") ? [{nome: "IMDb", url: `https://www.imdb.com/title/${f.imdb}/`}] : [])
+          <div class="fontes">${(f.fontes || [{nome: T("fonte"), url: f.fonte}]).concat(f.imdb && !(f.fontes || []).some(x => x.nome === "IMDb") ? [{nome: "IMDb", url: `https://www.imdb.com/title/${f.imdb}/`}] : [])
             .filter(x => x.url).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.nome)}</a>`).join("")}</div>
-          <div class="onde" data-id="${esc(f.id)}"><b>Onde assistir:</b> <span>procurando…</span></div>
+          <div class="onde" data-id="${esc(f.id)}"><b>${T("onde_lbl")}</b> <span>${T("procurando")}</span></div>
         </div>
-        <div class="lado"><div class="nota" style="--v:${f.media}" role="img" aria-label="${f.media}% de similaridade"><div><span><b class="num">${f.media}%</b><small>${varios ? "média" : esc(NOMES[d.criterios[0]])}</small></span></div></div>
-          <div class="nota-lbl">similaridade</div></div>
-      </li>`).join("")}</ol><p class="credito">Onde assistir: dados JustWatch</p>` : `<div class="card msg">Nenhuma sugestão.</div>`;
+        <div class="lado"><div class="nota" style="--v:${f.media}" role="img" aria-label="${T("aria_sim", {v: f.media})}"><div><span><b class="num">${f.media}%</b><small>${varios ? T("media") : esc(NOMES[d.criterios[0]])}</small></span></div></div>
+          <div class="nota-lbl">${T("similaridade")}</div></div>
+      </li>`).join("")}</ol><p class="credito">${T("credito")}</p>` : `<div class="card msg">${T("nenhuma")}</div>`;
     carregarOnde(d.ranking.map(f => f.id));
   } catch (err) {
-    $("#r-sub").textContent = "Não deu certo";
+    $("#r-sub").textContent = T("nao_deu");
     $("#out").innerHTML = `<div class="card msg err">${esc(err.message)}</div>`;
   } finally { validar(); }
 }

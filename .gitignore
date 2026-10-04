@@ -3,3 +3,5 @@ data/.segredo
 node_modules/
 .env
 .DS_Store
+data/buscas-feitas/
+*.textClipping
