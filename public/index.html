@@ -189,7 +189,7 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
   /* Celular: marca e bandeiras na primeira linha, o selo do modo vai para baixo da marca */
   .top-in{display:grid;grid-template-columns:1fr auto;align-items:center}
   .brand{flex-wrap:wrap;row-gap:2px;margin-right:0}
-  .brand .badge{font-size:.66rem;padding:2px 7px}
+  .brand .cota{font-size:.7rem;padding:3px 9px}
   .langs{grid-column:2;grid-row:1}
   .uso{grid-column:1/-1}}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--primary-soft);border-top-color:var(--primary);border-radius:50%;margin-right:6px;vertical-align:-1px;animation:gira .8s linear infinite}
@@ -236,7 +236,7 @@ dialog#pop .btn{width:100%;margin-top:8px}
 </style></head><body>
 <header class="top">
   <div class="top-in">
-    <div class="brand"><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg></span>JevMDB <span class="badge" id="modo">…</span></div>
+    <div class="brand"><span class="logo" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg></span>JevMDB <button type="button" class="cota" id="cota" hidden></button></div>
     <div class="uso" aria-live="polite" data-i18n-aria="uso_aria">
       <div class="stat"><span data-i18n="uso_custo"></span><b class="num" id="u-custo">—</b></div>
       <div class="stat"><span>Tokens</span><b class="num" id="u-tokens">—</b></div>
@@ -244,7 +244,6 @@ dialog#pop .btn{width:100%;margin-top:8px}
       <div class="stat"><span data-i18n="uso_tempo"></span><b class="num" id="u-tempo">—</b></div>
       <div class="stat total"><span data-i18n="uso_total"></span><b class="num" id="u-total">—</b></div>
     </div>
-    <button type="button" class="cota" id="cota" hidden></button>
     <nav class="langs" id="langs" data-i18n-aria="idioma_aria"></nav>
   </div>
 </header>
@@ -386,7 +385,7 @@ const TXT = {
     pop_p1: "Esta é uma demonstração de uso <b>gratuito</b>: você tem <b>{n} buscas</b>, seja escolhendo o filme na lista ou descrevendo em texto.",
     pop_p2: "Precisando de mais? É só pedir pelo WhatsApp que eu libero outras {n}. Por enquanto não há assinatura.",
     pop_ok: "Entendi, vamos lá",
-    cota_pill: "{r} de {l} buscas grátis",
+    cota_pill: "{r} de {l} grátis",
     cota_title: "Suas buscas grátis. Toque para ver como pedir mais.",
     lim_t: "Suas buscas grátis acabaram",
     lim_p: "Para liberar mais {n}, me chame no WhatsApp e envie este código:",
@@ -438,7 +437,7 @@ const TXT = {
     pop_p1: "This is a <b>free</b> demo: you get <b>{n} searches</b>, whether you pick the movie from the list or describe it in text.",
     pop_p2: "Need more? Just ask me on WhatsApp and I'll unlock another {n}. There's no subscription for now.",
     pop_ok: "Got it, let's go",
-    cota_pill: "{r} of {l} free searches",
+    cota_pill: "{r} of {l} free",
     cota_title: "Your free searches. Tap to see how to ask for more.",
     lim_t: "You've used all your free searches",
     lim_p: "To unlock {n} more, message me on WhatsApp with this code:",
@@ -490,7 +489,7 @@ const TXT = {
     pop_p1: "Esta es una demostración de uso <b>gratuito</b>: tienes <b>{n} búsquedas</b>, ya sea eligiendo la película de la lista o describiéndola en texto.",
     pop_p2: "¿Necesitas más? Pídelas por WhatsApp y te libero otras {n}. Por ahora no hay suscripción.",
     pop_ok: "Entendido, vamos",
-    cota_pill: "{r} de {l} búsquedas gratis",
+    cota_pill: "{r} de {l} gratis",
     cota_title: "Tus búsquedas gratis. Toca para ver cómo pedir más.",
     lim_t: "Se acabaron tus búsquedas gratis",
     lim_p: "Para liberar {n} más, escríbeme por WhatsApp con este código:",
@@ -608,9 +607,6 @@ function limparUso() { ["#u-custo", "#u-tokens", "#u-cham", "#u-tempo"].forEach(
 
 api("/api/catalogo").then(r => r.json()).then(d => {
   CAT = d.filmes; NOMES = Object.fromEntries(Object.keys(d.criterios).map(k => [k, T("crit." + k)]));
-  const on = d.modo === "jev";
-  $("#modo").textContent = on ? T("modo_on", {m: d.modelo}) : T("modo_sim");
-  $("#modo").classList.toggle("on", on);
   $("#crit").innerHTML = Object.entries(NOMES).map(([k, n]) => `<label class="chip"><input type="checkbox" value="${k}" id="c-${k}" ${k === "estilo" ? "checked" : ""}><span>${esc(n)}</span></label>`).join("");
   if (d.mostrar_uso === false) document.querySelector(".uso").hidden = true;
   mostrarUso(null, d.uso_total);
