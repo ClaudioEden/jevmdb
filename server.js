@@ -41,7 +41,9 @@ const DADOS = process.env.JEV_DADOS || path.join(__dirname, "data");
 const PEDIDOS = path.join(DADOS, "pedidos-filmes.jsonl");
 // WhatsApp para pedir mais buscas (só dígitos, com DDI). Sem ele, a tela não mostra o botão.
 const WHATSAPP = String(process.env.JEV_WHATSAPP || "").replace(/\D/g, "");
-const ADMIN_SENHA = process.env.JEV_ADMIN_SENHA || "";
+// Tira espaços, quebras de linha e aspas que painéis de deploy às vezes deixam em volta do valor.
+const ADMIN_SENHA = String(process.env.JEV_ADMIN_SENHA || "").trim().replace(/^(["'])(.*)\1$/, "$2");
+console.log(ADMIN_SENHA ? `Console em /admin ligado (senha de ${ADMIN_SENHA.length} caracteres)` : "Console em /admin desligado: defina JEV_ADMIN_SENHA");
 
 // Tarefa em segundo plano (vizinhos do TMDB, "sentiu falta"): o gasto também entra nas métricas do dia.
 function emSegundoPlano(rotulo, fn) {
@@ -229,7 +231,10 @@ function adminOk(req) {
   const recentes = (FALHAS_ADMIN.get(ip) || []).filter(t => Date.now() - t < 15 * 60e3);
   if (recentes.length >= 10) return [429, { erro: "Tentativas demais. Espere 15 minutos." }];
   const h = s => crypto.createHash("sha256").update(String(s)).digest();
-  if (crypto.timingSafeEqual(h(req.headers["x-admin-senha"] || ""), h(ADMIN_SENHA))) return null;
+  // A tela manda a senha com encodeURIComponent (cabeçalhos HTTP só aceitam ASCII; acentos e símbolos quebrariam).
+  let enviada = String(req.headers["x-admin-senha"] || "");
+  try { enviada = decodeURIComponent(enviada); } catch {}
+  if (crypto.timingSafeEqual(h(enviada.trim()), h(ADMIN_SENHA))) return null;
   FALHAS_ADMIN.set(ip, [...recentes, Date.now()]);
   return [401, { erro: "Senha incorreta." }];
 }

@@ -100,7 +100,7 @@ let senha = ""; try { senha = sessionStorage.getItem("jev_admin") || ""; } catch
 let ultimo = null, timer = null;
 
 async function chamar(url, corpo) {
-  const r = await fetch(url, {method: corpo ? "POST" : "GET", headers: {"X-Admin-Senha": senha, ...(corpo ? {"Content-Type": "application/json"} : {})}, body: corpo ? JSON.stringify(corpo) : undefined});
+  const r = await fetch(url, {method: corpo ? "POST" : "GET", headers: {"X-Admin-Senha": encodeURIComponent(senha), ...(corpo ? {"Content-Type": "application/json"} : {})}, body: corpo ? JSON.stringify(corpo) : undefined});
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(d.erro || "Erro"), {status: r.status});
   return d;
