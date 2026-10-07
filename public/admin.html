@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>JevMDB · Console</title>
+<style>
+:root{--bg:#f5f5fb;--surface:#fff;--surface-2:#eef0fa;--line:#dfe1f0;--fg:#14142b;--muted:#5b5b7a;--primary:#4338ca;--primary-fg:#fff;--ok:#15803d;--warn:#b45309;--danger:#b91c1c;--bar:#c7c9ee;--font:system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0f0f23;--surface:#17172e;--surface-2:#1f1f3c;--line:#2c2c4d;--fg:#f8fafc;--muted:#a3a3c2;--primary:#818cf8;--primary-fg:#0f0f23;--ok:#4ade80;--warn:#fbbf24;--danger:#f87171;--bar:#3a3a7a;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font)}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+h1{font-size:1.25rem;margin:0;margin-right:auto}h2{font-size:1rem;margin:0 0 10px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.v{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums}.s{font-size:.8rem;color:var(--muted)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--danger)}
+.btn{font:600 .9rem var(--font);padding:9px 16px;border:0;border-radius:10px;background:var(--primary);color:var(--primary-fg);cursor:pointer;min-height:40px}
+.btn.alt{background:var(--surface-2);color:var(--fg)}.btn.danger{background:var(--danger);color:#fff}
+input{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);min-height:40px}
+table{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child,td.l,th.l{text-align:left}
+th{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
+.scroll{overflow-x:auto}
+.meter{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:6px}.meter i{display:block;height:100%;background:var(--primary)}
+.meter.alto i{background:var(--danger)}
+.bars{display:flex;align-items:flex-end;gap:3px;height:90px}.bars div{flex:1;max-width:32px;background:var(--bar);border-radius:3px 3px 0 0;min-height:2px}.bars div:last-child{background:var(--primary)}
+.cols{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.login{max-width:340px;margin:18vh auto;text-align:center}.login input{width:100%;margin:10px 0}
+ul{margin:0;padding:0;list-style:none}li{padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem}
+.cod{font:700 .95rem ui-monospace,Menlo,monospace;letter-spacing:.1em}
+#msg{font-size:.85rem;margin-top:8px}
+</style></head><body>
+<div class="wrap">
+<section class="login card" id="login">
+  <h1>Console JevMDB</h1>
+  <input type="password" id="senha" placeholder="Senha do console" autocomplete="current-password">
+  <button class="btn" id="entrar" style="width:100%">Entrar</button>
+  <div id="erro-login" class="bad s"></div>
+</section>
+
+<div id="painel" hidden>
+  <header>
+    <h1>Console JevMDB <span class="s" id="atual"></span></h1>
+    <span class="s" id="atualizado"></span>
+    <button class="btn alt" id="sair">Sair</button>
+  </header>
+
+  <div class="card" id="alerta" hidden style="margin-bottom:12px;border-color:var(--danger)"></div>
+
+  <div class="grid">
+    <div class="card"><div class="k">Gasto hoje (Jev + Gemini)</div><div class="v" id="g-hoje">—</div><div class="s" id="g-teto"></div><div class="meter" id="g-meter"><i style="width:0"></i></div></div>
+    <div class="card"><div class="k">Buscas hoje</div><div class="v" id="b-hoje">—</div><div class="s" id="b-vis"></div></div>
+    <div class="card"><div class="k">Jev hoje</div><div class="v" id="j-hoje">—</div><div class="s" id="j-sub"></div></div>
+    <div class="card"><div class="k">Gemini hoje</div><div class="v" id="m-hoje">—</div><div class="s" id="m-sub"></div></div>
+    <div class="card"><div class="k">Bloqueios hoje</div><div class="v" id="bl-hoje">—</div><div class="s" id="bl-sub"></div></div>
+    <div class="card"><div class="k">Erros hoje</div><div class="v" id="er-hoje">—</div><div class="s" id="er-sub"></div></div>
+  </div>
+
+  <div class="cols">
+    <div class="card"><h2>Servidor</h2>
+      <table><tbody id="srv"></tbody></table>
+      <div class="s" style="margin-top:8px">Dentro do Docker, carga e memória mostram a VPS inteira; “Processo” é só o JevMDB.</div>
+    </div>
+    <div class="card"><h2>Controle de gasto</h2>
+      <p class="s" style="margin:0 0 8px">Teto diário em US$ <b id="teto">—</b> (variável JEV_TETO_DIARIO_USD). Ao atingir, as buscas pausam até o dia seguinte. Pausar à mão também funciona.</p>
+      <button class="btn" id="pausar"></button>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+      <h2>Liberar mais buscas</h2>
+      <p class="s" style="margin:0 0 8px">O visitante manda o código de 6 caracteres pelo WhatsApp.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="cod" maxlength="6" placeholder="CÓDIGO" class="cod" style="width:130px;text-transform:uppercase"><input id="qtd" type="number" min="1" max="50" value="5" style="width:80px" aria-label="Quantidade"><button class="btn" id="liberar">Liberar</button></div>
+      <div id="msg"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px"><h2>Últimos 30 dias</h2>
+    <div class="bars" id="barras" aria-label="Gasto por dia"></div>
+    <div class="scroll"><table><thead><tr><th>Dia</th><th>Buscas</th><th>Visitantes</th><th>Bloqueios</th><th>Erros</th><th>Jev chamadas</th><th>Jev US$</th><th>Gemini chamadas</th><th>Gemini tokens</th><th>Gemini US$</th><th>Total US$</th></tr></thead><tbody id="dias"></tbody></table></div>
+  </div>
+
+  <div class="cols" style="margin-top:12px">
+    <div class="card"><h2>Visitantes que mais buscaram</h2><div class="scroll"><table><thead><tr><th>Código</th><th>Usadas</th><th>Limite</th><th>Última</th></tr></thead><tbody id="maiores"></tbody></table></div>
+      <div class="s" id="cota-sub" style="margin-top:6px"></div></div>
+    <div class="card"><h2>Liberações recentes</h2><ul id="libs"></ul></div>
+    <div class="card"><h2>Últimas atividades</h2><ul id="evs"></ul></div>
+    <div class="card"><h2>Avaliações</h2><ul id="avs"></ul></div>
+    <div class="card"><h2>“Sentiu falta” (filmes pedidos)</h2><ul id="peds"></ul></div>
+  </div>
+</div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nf = (n, d = 0) => Number(n || 0).toLocaleString("pt-BR", {minimumFractionDigits: d, maximumFractionDigits: d});
+const usd = n => "US$ " + Number(n || 0).toLocaleString("pt-BR", {minimumFractionDigits: 3, maximumFractionDigits: 4});
+const bytes = n => n == null ? "—" : n > 1e9 ? nf(n / 1e9, 1) + " GB" : nf(n / 1e6, 0) + " MB";
+const dur = s => s > 86400 ? nf(s / 86400, 1) + " dias" : s > 3600 ? nf(s / 3600, 1) + " h" : nf(s / 60, 0) + " min";
+const hora = iso => new Date(iso).toLocaleString("pt-BR", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
+let senha = ""; try { senha = sessionStorage.getItem("jev_admin") || ""; } catch {}
+let ultimo = null, timer = null;
+
+async function chamar(url, corpo) {
+  const r = await fetch(url, {method: corpo ? "POST" : "GET", headers: {"X-Admin-Senha": senha, ...(corpo ? {"Content-Type": "application/json"} : {})}, body: corpo ? JSON.stringify(corpo) : undefined});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(d.erro || "Erro"), {status: r.status});
+  return d;
+}
+async function carregar() {
+  try {
+    ultimo = await chamar("/api/admin/resumo");
+    $("#login").hidden = true; $("#painel").hidden = false;
+    desenhar(ultimo);
+    $("#atualizado").textContent = "atualizado " + new Date().toLocaleTimeString("pt-BR");
+    if (!timer) timer = setInterval(carregar, 30000);
+  } catch (e) {
+    if (e.status === 401 || e.status === 404 || e.status === 429) { $("#login").hidden = false; $("#painel").hidden = true; $("#erro-login").textContent = senha ? e.message : ""; clearInterval(timer); timer = null; }
+  }
+}
+function desenhar(d) {
+  const m = d.metricas, h = m.dias.find(x => x.dia === m.hoje) || {buscas: 0, visitantes: 0, bloqueios: 0, erros: 0, pausadas: 0, identificacoes: 0, fundo: 0, jev: {}, gemini: {}};
+  $("#atual").textContent = `· ${d.modo}${d.gemini ? " · " + d.gemini : ""} · ${m.hoje}`;
+  const pct = m.teto_usd > 0 ? Math.min(100, m.gasto_hoje_usd / m.teto_usd * 100) : 0;
+  $("#g-hoje").textContent = usd(m.gasto_hoje_usd);
+  $("#g-teto").textContent = m.teto_usd > 0 ? `${nf(pct, 0)}% do teto de US$ ${nf(m.teto_usd, 2)}` : "sem teto";
+  $("#g-meter").className = "meter" + (pct >= 80 ? " alto" : ""); $("#g-meter").firstElementChild.style.width = pct + "%";
+  $("#b-hoje").textContent = nf(h.buscas); $("#b-vis").textContent = `${nf(h.visitantes)} visitantes · ${nf(h.identificacoes)} identificações por texto`;
+  $("#j-hoje").textContent = usd(h.jev.custo_usd); $("#j-sub").textContent = `${nf(h.jev.chamadas)} chamadas · ${nf((h.jev.input_tokens || 0) + (h.jev.output_tokens || 0))} tokens`;
+  $("#m-hoje").textContent = usd(h.gemini.custo_usd); $("#m-sub").textContent = `${nf(h.gemini.chamadas)} chamadas · ${nf((h.gemini.input_tokens || 0) + (h.gemini.output_tokens || 0))} tokens · ${nf(h.gemini.falhas)} falhas`;
+  $("#bl-hoje").textContent = nf(h.bloqueios + h.pausadas); $("#bl-sub").textContent = `${nf(h.bloqueios)} sem buscas · ${nf(h.pausadas)} com site pausado`;
+  $("#er-hoje").textContent = nf(h.erros); $("#er-hoje").className = "v " + (h.erros ? "bad" : "ok"); $("#er-sub").textContent = h.erros ? "veja Últimas atividades" : "tudo certo";
+
+  const al = $("#alerta");
+  if (m.pausado) { al.hidden = false; al.innerHTML = "<b class='bad'>Site pausado à mão.</b> Nenhuma busca nova está sendo atendida."; }
+  else if (m.bloqueio === "teto") { al.hidden = false; al.innerHTML = "<b class='bad'>Teto diário atingido.</b> As buscas voltam amanhã (ou aumente JEV_TETO_DIARIO_USD no Dokploy)."; }
+  else if (pct >= 80) { al.hidden = false; al.innerHTML = `<b class="warn">Atenção:</b> ${nf(pct, 0)}% do teto de hoje já foi usado.`; }
+  else al.hidden = true;
+
+  const s = d.servidor, usadaMem = s.memoria.total - s.memoria.livre;
+  const lin = (k, v, cls = "") => `<tr><td class="l">${k}</td><td class="${cls}">${v}</td></tr>`;
+  const cargaPct = s.carga[0] / s.cpus;
+  $("#srv").innerHTML = lin("Carga (1/5/15 min)", s.carga.map(x => nf(x, 2)).join(" / ") + ` · ${s.cpus} CPU`, cargaPct > 1 ? "bad" : cargaPct > .7 ? "warn" : "ok")
+    + lin("Memória usada", `${bytes(usadaMem)} de ${bytes(s.memoria.total)} (${nf(usadaMem / s.memoria.total * 100, 0)}%)`, usadaMem / s.memoria.total > .9 ? "bad" : "")
+    + lin("Disco livre", s.disco ? `${bytes(s.disco.livre)} de ${bytes(s.disco.total)}` : "—", s.disco && s.disco.livre / s.disco.total < .1 ? "bad" : "")
+    + lin("Processo JevMDB", `${bytes(s.processo.rss)} · no ar há ${dur(s.processo.uptime_s)} · Node ${s.processo.node}`)
+    + lin("VPS ligada há", dur(s.maquina_uptime_s)) + lin("Filmes no catálogo", nf(s.filmes)) + lin("Arquivos de dados", bytes(s.dados_bytes));
+
+  $("#teto").textContent = m.teto_usd > 0 ? nf(m.teto_usd, 2) : "desligado";
+  $("#pausar").textContent = m.pausado ? "Retomar o site" : "Pausar o site agora"; $("#pausar").className = "btn " + (m.pausado ? "" : "danger");
+
+  const max = Math.max(...m.dias.map(x => x.jev.custo_usd + x.gemini.custo_usd), 1e-9);
+  $("#barras").innerHTML = [...m.dias].reverse().map(x => { const t = x.jev.custo_usd + x.gemini.custo_usd; return `<div style="height:${Math.max(2, t / max * 100)}%" title="${x.dia}: ${usd(t)}"></div>`; }).join("");
+  $("#dias").innerHTML = m.dias.map(x => `<tr><td>${x.dia}</td><td>${nf(x.buscas)}</td><td>${nf(x.visitantes)}</td><td>${nf(x.bloqueios + x.pausadas)}</td><td>${nf(x.erros)}</td><td>${nf(x.jev.chamadas)}</td><td>${usd(x.jev.custo_usd)}</td><td>${nf(x.gemini.chamadas)}</td><td>${nf(x.gemini.input_tokens + x.gemini.output_tokens)}</td><td>${usd(x.gemini.custo_usd)}</td><td><b>${usd(x.jev.custo_usd + x.gemini.custo_usd)}</b></td></tr>`).join("");
+
+  const c = d.cota;
+  $("#maiores").innerHTML = c.maiores.map(x => `<tr><td class="cod l">${esc(x.codigo)}</td><td>${x.usadas}</td><td>${x.limite}</td><td>${x.ultimo ? hora(x.ultimo) : "—"}</td></tr>`).join("") || `<tr><td class="l" colspan="4">Sem buscas ainda</td></tr>`;
+  $("#cota-sub").textContent = `${c.visitantes} visitantes no total, ${c.no_limite} no limite. Cota grátis: ${c.gratis} buscas${c.ativa ? "" : " (TRAVA DESLIGADA: JEV_COTA_ANONIMA=0)"}.`;
+  $("#libs").innerHTML = c.liberacoes.map(l => `<li><span class="cod">${esc(l.codigo)}</span> +${l.n} <span class="s">${hora(l.em)}</span></li>`).join("") || "<li class='s'>Nenhuma ainda</li>";
+  $("#evs").innerHTML = m.eventos.map(e => `<li><b class="${e.tipo === "erro" ? "bad" : e.tipo === "bloqueio" || e.tipo === "pausada" ? "warn" : ""}">${esc(e.tipo)}</b> ${e.ref ? esc(e.ref) + (e.ano ? " (" + e.ano + ")" : "") : ""}${e.motivo ? " · " + esc(e.motivo) : ""}${e.erro ? " · " + esc(e.erro) : ""} <span class="s">${hora(e.em)}${e.custo_usd ? " · " + usd(e.custo_usd) : ""}</span></li>`).join("") || "<li class='s'>Nada ainda</li>";
+  $("#avs").innerHTML = d.avaliacoes.map(a => `<li>${a.estrelas != null ? "★".repeat(Math.round(a.estrelas / 2)) + " " + a.estrelas + "/10" : ""} ${a.referencia ? esc(a.referencia.titulo) : ""}${a.comentario ? `<br><i>${esc(a.comentario)}</i>` : ""} <span class="s">${hora(a.em)}</span></li>`).join("") || "<li class='s'>Nenhuma ainda</li>";
+  $("#peds").innerHTML = d.pedidos.map(p => `<li>${esc(p.texto)} <span class="s">${esc(p.status)} · ${hora(p.em)}</span></li>`).join("") || "<li class='s'>Nenhum ainda</li>";
+}
+$("#entrar").onclick = () => { senha = $("#senha").value; try { sessionStorage.setItem("jev_admin", senha); } catch {} carregar(); };
+$("#senha").addEventListener("keydown", e => { if (e.key === "Enter") $("#entrar").click(); });
+$("#sair").onclick = () => { senha = ""; try { sessionStorage.removeItem("jev_admin"); } catch {} location.reload(); };
+$("#pausar").onclick = async () => { if (confirm(ultimo.metricas.pausado ? "Retomar o site?" : "Pausar todas as buscas agora?")) { await chamar("/api/admin/pausar", {pausado: !ultimo.metricas.pausado}); carregar(); } };
+$("#liberar").onclick = async () => {
+  const msg = $("#msg");
+  try { const r = await chamar("/api/admin/liberar", {codigo: $("#cod").value, n: Number($("#qtd").value) || 5}); msg.className = "ok"; msg.textContent = `Pronto: ${r.codigo} agora tem ${r.restantes} buscas restantes (limite ${r.limite}).`; $("#cod").value = ""; carregar(); }
+  catch (e) { msg.className = "bad"; msg.textContent = e.message; }
+};
+if (senha) carregar();
+</script>
+</body></html>

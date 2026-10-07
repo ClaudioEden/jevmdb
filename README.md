@@ -48,16 +48,26 @@ Sem chave, ou com `JEV_MOCK=1`, roda em **modo simulado**: as notas são uma heu
 | `GEMINI_API_KEY` | (vazio) | Opcional. Na aba de texto, o Gemini identifica o filme (mesmo com erro de digitação ou fora do catálogo) |
 | `GEMINI_MODEL` | gemini-flash-latest | Modelo do Gemini (se estiver sobrecarregado, tenta gemini-flash-lite-latest e gemini-2.5-flash; se todos falharem, o Jev escolhe no catálogo) |
 | `JEV_MIN_CATALOGO` | 40 | Com menos filmes que isso, a busca primeiro traz do TMDB os filmes vizinhos da referência (na hora). Acima disso, os vizinhos entram em segundo plano depois de cada busca |
-| `JEV_COTA_LIMITE_IP` | 5 | Consultas grátis por IP em 24 h antes de o IP bloquear sozinho |
+| `JEV_COTA_GRATIS` | 5 | Buscas grátis por visitante (lista ou texto). Quem precisar de mais pede pelo WhatsApp e você libera no console |
+| `JEV_COTA_LIMITE_IP` | 30 | Buscas por IP em 24 h, de todos os visitantes juntos, antes de o IP bloquear (rede de escritório ou celular divide o mesmo IP) |
+| `JEV_WHATSAPP` | (vazio) | Seu WhatsApp com DDI, só dígitos (ex.: 5585998728964). Aparece no botão "Pedir mais buscas" |
+| `JEV_ADMIN_SENHA` | (vazio) | Senha do console em `/admin`. Sem ela o console fica desligado |
+| `JEV_TETO_DIARIO_USD` | 2 | Teto de gasto por dia (Jev + Gemini). Ao atingir, as buscas pausam até o dia seguinte. `0` desliga o teto |
+| `JEV_FUSO` | America/Fortaleza | Fuso que define a virada do dia nas métricas e no teto |
+| `GEMINI_PRECO_INPUT_POR_M` / `GEMINI_PRECO_OUTPUT_POR_M` | 0.30 / 2.50 | US$ por milhão de tokens do Gemini, só para estimar o gasto no console. Confira a tabela do Google |
 | `JEV_SEGREDO` | gerado em `data/.segredo` | Chave que assina o cookie do visitante |
 
-## Consulta grátis
-Cada visitante sem cadastro faz **uma** consulta. A trava (`lib/cota.js`) combina três sinais, nesta ordem:
-1. **Fingerprint do navegador** (calculado na página e enviado no cabeçalho `X-Jev-FP`): se já foi usado, bloqueia, mesmo que a pessoa apague o cookie ou troque de IP.
-2. **Cookie assinado** pelo servidor: se já foi usado, bloqueia.
-3. **IP** (guardado só como hash): sozinho não bloqueia, para não barrar colegas no mesmo escritório ou na mesma rede móvel. Só bloqueia se o pedido vier sem fingerprint, ou se o mesmo IP já fez `JEV_COTA_LIMITE_IP` consultas grátis em 24 h (padrão 5).
+## Buscas grátis e console
+Cada visitante tem **5 buscas grátis** (`JEV_COTA_GRATIS`), escolhendo o filme na lista ou descrevendo em texto. Na primeira visita, um aviso explica isso; o topo mostra quantas restam. Acabando, a tela mostra um **código de 6 caracteres** e um botão que abre o seu WhatsApp com o código já na mensagem. Você digita o código no console e libera mais 5. Não há assinatura.
 
-Só conta a consulta que trouxe resultado. Os sinais ficam em `data/cota.json`, criado na primeira consulta contada com a trava ligada. Para zerar durante os testes, apague esse arquivo. `JEV_COTA_ANONIMA=0` desliga a trava; a variável pode ir no `.env` ou na linha de comando (a linha de comando vale mais que o `.env`).
+A trava (`lib/cota.js`) combina três sinais:
+1. **Cookie assinado** pelo servidor: dele sai o código do visitante.
+2. **Fingerprint do navegador** (cabeçalho `X-Jev-FP`): conta junto, então apagar o cookie não zera as buscas.
+3. **IP** (só o hash): não bloqueia quem manda fingerprint, para não barrar colegas na mesma rede; bloqueia pedidos sem fingerprint depois de 5 buscas e qualquer IP acima de `JEV_COTA_LIMITE_IP` em 24 h.
+
+Só conta a busca que trouxe resultado. Os contadores ficam em `$JEV_DADOS/cota.json`. `JEV_COTA_ANONIMA=0` desliga a trava (útil para testar).
+
+**Console (`/admin`)**, protegido por `JEV_ADMIN_SENHA`: gasto do dia (Jev e Gemini, em US$ e tokens), buscas, visitantes únicos, bloqueios e erros, 30 dias de histórico, carga/memória/disco da máquina, últimas atividades, avaliações e filmes pedidos. Tem o botão **Liberar +5** (por código), o **teto diário de gasto** e a **pausa manual** do site. Os números do dia ficam em `$JEV_DADOS/metricas.json` (90 dias).
 
 ## Arquivos
 - `server.js`: rotas HTTP e entendimento do pedido.

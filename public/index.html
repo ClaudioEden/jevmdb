@@ -219,6 +219,20 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
   .tab{flex:1;justify-content:center;padding:9px 10px}
   .tab .longo{display:none}
 }
+/* Saldo de buscas grátis, aviso de boas-vindas e tela de limite */
+.cota{font-size:.78rem;font-weight:600;padding:5px 12px;border-radius:999px;background:var(--primary-soft);color:var(--primary);border:0;cursor:pointer;font-family:var(--font)}
+.cota.zero{background:#fde2e2;color:var(--danger)}
+dialog#pop{border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--fg);padding:26px;max-width:min(440px,calc(100vw - 32px));box-shadow:0 24px 64px rgba(0,0,0,.35)}
+dialog#pop::backdrop{background:rgba(10,10,30,.6);backdrop-filter:blur(3px)}
+dialog#pop h2{margin:0 0 10px;font-size:1.3rem;letter-spacing:-.02em}
+dialog#pop p{margin:0 0 10px;color:var(--muted)}
+dialog#pop p b{color:var(--fg)}
+dialog#pop .btn{width:100%;margin-top:8px}
+.limite{padding:24px;text-align:center}
+.limite h3{margin:0 0 8px;font-size:1.2rem}
+.limite p{margin:0 0 12px;color:var(--muted)}
+.limite .cod{display:inline-block;font:700 1.6rem/1 ui-monospace,Menlo,monospace;letter-spacing:.18em;padding:12px 18px;border-radius:12px;background:var(--surface-2);border:1px dashed var(--line);margin:4px 0 14px;user-select:all}
+.limite .btn{text-decoration:none}
 </style></head><body>
 <header class="top">
   <div class="top-in">
@@ -230,9 +244,17 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-so
       <div class="stat"><span data-i18n="uso_tempo"></span><b class="num" id="u-tempo">—</b></div>
       <div class="stat total"><span data-i18n="uso_total"></span><b class="num" id="u-total">—</b></div>
     </div>
+    <button type="button" class="cota" id="cota" hidden></button>
     <nav class="langs" id="langs" data-i18n-aria="idioma_aria"></nav>
   </div>
 </header>
+
+<dialog id="pop" aria-labelledby="pop-t">
+  <h2 id="pop-t"></h2>
+  <p id="pop-p1"></p>
+  <p id="pop-p2"></p>
+  <button type="button" class="btn" id="pop-ok"></button>
+</dialog>
 
 <main class="wrap">
   <div class="hero">
@@ -360,6 +382,19 @@ const TXT = {
     elenco: "Elenco", ler_mais: "ler mais", ler_menos: "ler menos",
     ficha_abrir: "Ver ficha completa", ficha_fechar: "Recolher ficha", ampliado: "{n} filmes novos no catálogo", falta_titulo: "Sentiu falta de algum filme nesta lista?", falta_ph: "Diga qual, e a gente inclui no catálogo", falta_ok: "Obrigado! Vamos incluir esse filme no catálogo em breve.",
     novo_pill: "novo", baixando: "Baixando a ficha do filme (IMDb, Wikidata, Wikipedia e TMDB)…", baixada: "Ficha baixada e incluída no catálogo.", erro_baixar: "Não consegui baixar a ficha deste filme. Tente outro.",
+    pop_t: "Bem-vindo ao JevMDB 🎬",
+    pop_p1: "Esta é uma demonstração de uso <b>gratuito</b>: você tem <b>{n} buscas</b>, seja escolhendo o filme na lista ou descrevendo em texto.",
+    pop_p2: "Precisando de mais? É só pedir pelo WhatsApp que eu libero outras {n}. Por enquanto não há assinatura.",
+    pop_ok: "Entendi, vamos lá",
+    cota_pill: "{r} de {l} buscas grátis",
+    cota_title: "Suas buscas grátis. Toque para ver como pedir mais.",
+    lim_t: "Suas buscas grátis acabaram",
+    lim_p: "Para liberar mais {n}, me chame no WhatsApp e envie este código:",
+    lim_btn: "Pedir mais buscas no WhatsApp",
+    lim_wa: "Olá! Quero mais buscas no JevMDB. Meu código: {c}",
+    lim_sem: "Fale com quem te enviou o link e informe este código.",
+    pausado: "O JevMDB está pausado por alto volume de uso. Volte amanhã!",
+    lim_ip: "Muitas buscas vieram desta rede hoje. Tente mais tarde ou peça a liberação pelo WhatsApp.",
     lang_nome: "Português",
   },
   en: {
@@ -399,6 +434,19 @@ const TXT = {
     elenco: "Cast", ler_mais: "read more", ler_menos: "read less",
     ficha_abrir: "Show full details", ficha_fechar: "Hide details", ampliado: "{n} new movies added to the catalog", falta_titulo: "Missing a movie from this list?", falta_ph: "Tell us which one and we'll add it to the catalog", falta_ok: "Thanks! We'll add that movie to the catalog soon.",
     novo_pill: "new", baixando: "Fetching the movie details (IMDb, Wikidata, Wikipedia and TMDB)…", baixada: "Details fetched and added to the catalog.", erro_baixar: "Couldn't fetch this movie's details. Try another one.",
+    pop_t: "Welcome to JevMDB 🎬",
+    pop_p1: "This is a <b>free</b> demo: you get <b>{n} searches</b>, whether you pick the movie from the list or describe it in text.",
+    pop_p2: "Need more? Just ask me on WhatsApp and I'll unlock another {n}. There's no subscription for now.",
+    pop_ok: "Got it, let's go",
+    cota_pill: "{r} of {l} free searches",
+    cota_title: "Your free searches. Tap to see how to ask for more.",
+    lim_t: "You've used all your free searches",
+    lim_p: "To unlock {n} more, message me on WhatsApp with this code:",
+    lim_btn: "Ask for more searches on WhatsApp",
+    lim_wa: "Hi! I'd like more searches on JevMDB. My code: {c}",
+    lim_sem: "Contact whoever sent you the link and share this code.",
+    pausado: "JevMDB is paused due to high usage. Please come back tomorrow!",
+    lim_ip: "Too many searches came from this network today. Try later or ask for an unlock on WhatsApp.",
     lang_nome: "English",
   },
   es: {
@@ -438,6 +486,19 @@ const TXT = {
     elenco: "Reparto", ler_mais: "leer más", ler_menos: "leer menos",
     ficha_abrir: "Ver ficha completa", ficha_fechar: "Ocultar ficha", ampliado: "{n} películas nuevas en el catálogo", falta_titulo: "¿Echaste en falta alguna película en esta lista?", falta_ph: "Dinos cuál y la agregamos al catálogo", falta_ok: "¡Gracias! Agregaremos esa película al catálogo pronto.",
     novo_pill: "nueva", baixando: "Descargando la ficha de la película (IMDb, Wikidata, Wikipedia y TMDB)…", baixada: "Ficha descargada y agregada al catálogo.", erro_baixar: "No pude descargar la ficha de esta película. Prueba otra.",
+    pop_t: "Bienvenido a JevMDB 🎬",
+    pop_p1: "Esta es una demostración de uso <b>gratuito</b>: tienes <b>{n} búsquedas</b>, ya sea eligiendo la película de la lista o describiéndola en texto.",
+    pop_p2: "¿Necesitas más? Pídelas por WhatsApp y te libero otras {n}. Por ahora no hay suscripción.",
+    pop_ok: "Entendido, vamos",
+    cota_pill: "{r} de {l} búsquedas gratis",
+    cota_title: "Tus búsquedas gratis. Toca para ver cómo pedir más.",
+    lim_t: "Se acabaron tus búsquedas gratis",
+    lim_p: "Para liberar {n} más, escríbeme por WhatsApp con este código:",
+    lim_btn: "Pedir más búsquedas por WhatsApp",
+    lim_wa: "¡Hola! Quiero más búsquedas en JevMDB. Mi código: {c}",
+    lim_sem: "Habla con quien te envió el enlace y dile este código.",
+    pausado: "JevMDB está en pausa por alto volumen de uso. ¡Vuelve mañana!",
+    lim_ip: "Llegaron demasiadas búsquedas desde esta red hoy. Intenta más tarde o pide la liberación por WhatsApp.",
     lang_nome: "Español",
   },
 };
@@ -458,7 +519,7 @@ function T(k, v = {}) {
   return typeof s === "string" ? s.replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "") : s;
 }
 const erroTxt = d => (d?.codigo && TXT[LANG].erro[d.codigo]) || d?.erro || T("nao_deu");
-const api = (url, opts = {}) => fetch(url, {...opts, headers: {...(opts.headers || {}), "X-Jev-Lang": LANG}});
+const api = async (url, opts = {}) => fetch(url, {...opts, headers: {...(opts.headers || {}), "X-Jev-Lang": LANG, "X-Jev-FP": await FP}});
 function aplicarTextos() {
   document.documentElement.lang = LOCALE;
   document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = T(el.dataset.i18n));
@@ -496,6 +557,40 @@ async function fingerprint() {
   } catch { return ""; }
 }
 const FP = fingerprint();
+
+// ---------- Buscas grátis: saldo, aviso de boas-vindas e tela de limite ----------
+let COTA = null, WHATS = null, GRATIS = 5;
+function mostrarCota(c) {
+  COTA = c; const el = $("#cota");
+  if (!c || c.ativa === false) { el.hidden = true; return; }
+  el.hidden = false; el.textContent = T("cota_pill", {r: c.restantes, l: c.limite});
+  el.title = T("cota_title"); el.classList.toggle("zero", c.restantes <= 0);
+}
+function mostrarLimite(d) {
+  $("#res-head").hidden = false; $("#count").textContent = "";
+  if (d.codigo === "pausado") { $("#out").innerHTML = `<div class="card limite"><p>${esc(T("pausado"))}</p></div>`; return; }
+  if (d.cota) mostrarCota(d.cota);
+  const c = (d.cota || COTA || {}).codigo || "", wa = d.whatsapp || WHATS;
+  const link = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(T("lim_wa", {c}))}` : null;
+  $("#out").innerHTML = `<div class="card limite"><h3>${esc(T("lim_t"))}</h3>
+    ${d.motivo === "ip" ? `<p>${esc(T("lim_ip"))}</p>` : ""}
+    <p>${esc(T("lim_p", {n: GRATIS}))}</p><div class="cod" aria-label="code">${esc(c)}</div><br>
+    ${link ? `<a class="btn" href="${link}" target="_blank" rel="noopener">${esc(T("lim_btn"))}</a>` : `<p>${esc(T("lim_sem"))}</p>`}</div>`;
+}
+$("#cota").onclick = () => { if (COTA && COTA.restantes <= 0) mostrarLimite({cota: COTA}); else abrirAviso(); };
+function abrirAviso() {
+  $("#pop-t").textContent = T("pop_t"); $("#pop-p1").innerHTML = T("pop_p1", {n: GRATIS}); $("#pop-p2").textContent = T("pop_p2", {n: GRATIS});
+  $("#pop-ok").textContent = T("pop_ok");
+  if (typeof $("#pop").showModal === "function") $("#pop").showModal();
+}
+$("#pop-ok").onclick = () => { try { localStorage.setItem("jevmdb_visto", "1"); } catch {} $("#pop").close(); };
+$("#pop").addEventListener("cancel", () => { try { localStorage.setItem("jevmdb_visto", "1"); } catch {} });
+api("/api/cota").then(r => r.json()).then(c => {
+  WHATS = c.whatsapp; GRATIS = c.gratis || GRATIS; mostrarCota(c);
+  if (c.ativa === false) return;
+  let visto = false; try { visto = !!localStorage.getItem("jevmdb_visto"); } catch {}
+  if (!visto) abrirAviso();
+}).catch(() => {});
 
 // ---------- Uso (barra do topo) ----------
 function mostrarUso(u, total) {
@@ -678,6 +773,7 @@ async function identificar() {
     const r = await api("/api/identificar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pedido, rejeitados: TX.rejeitados})});
     const d = await r.json();
     mostrarUso(d.uso, d.uso_total);
+    if (r.status === 402 || r.status === 503) { $("#t-confirma").hidden = true; $("#out").innerHTML = ""; $("#res-head").hidden = false; mostrarLimite(d); return; }
     if (!r.ok) throw new Error(erroTxt(d));
     TX.cand = d.candidato; TX.alts = d.alternativas || []; TX.criterios = d.criterios || ["estilo"];
     if (!TX.cand) { $("#t-confirma").hidden = true; pedirMais(T("nao_identifiquei")); return; }
@@ -780,15 +876,16 @@ async function buscar(body, titulo, poster, peloTexto) {
   limparUso();
   $("#go").disabled = true;
   try {
-    const r = await api("/api/recomendar", {method: "POST", headers: {"Content-Type": "application/json", "X-Jev-FP": await FP}, body: JSON.stringify(body)});
+    const r = await api("/api/recomendar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
     const d = await r.json();
     mostrarUso(d.uso || {custo_usd: 0, input_tokens: 0, output_tokens: 0, chamadas: 0, tempo_ms: 0}, d.uso_total);
-    if (r.status === 402) {
-      $("#r-sub").textContent = T("cota_sub");
-      $("#out").innerHTML = `<div class="card msg">${T("cota_msg")}</div>`;
+    if (r.status === 402 || r.status === 503) {
+      $("#r-sub").textContent = T("lim_t");
+      mostrarLimite(d);
       return;
     }
     if (!r.ok) throw new Error(erroTxt(d));
+    if (d.cota) mostrarCota(d.cota);
     mostrarAvaliacao(d.busca_id);
     const ref = d.referencia;
     if (d.importado) CAT.push(ref);

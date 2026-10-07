@@ -108,7 +108,11 @@ Preencha as quatro chaves e confira que estão assim:
 
 ```
 JEV_COTA_ANONIMA=1
-JEV_COTA_LIMITE_IP=5
+JEV_COTA_GRATIS=5
+JEV_COTA_LIMITE_IP=30
+JEV_WHATSAPP=5585998728964
+JEV_ADMIN_SENHA=uma-senha-longa
+JEV_TETO_DIARIO_USD=2
 ```
 
 Depois proteja o arquivo (só o usuário do app lê):
@@ -276,7 +280,7 @@ O Dokploy já tem o Traefik ocupando as portas 80 e 443 e emitindo os certificad
 1. No Dokploy: **Create Project → Create Service → Application**.
 2. **Source**: GitHub (ou "Git" com `https://github.com/ClaudioEden/jevmdb.git`), branch `main`.
 3. **Build Type**: `Dockerfile`, com **Docker File** = `Dockerfile` e **Docker Context Path** = `.` (um ponto: é a pasta, não o arquivo; `./Dockerfile` ali faz o build falhar e o site responder "Bad Gateway"). Não crie mapeamento de porta em Advanced → Ports: a 3000 da VPS é o painel do Dokploy.
-4. **Environment**: cole as variáveis do `.env`, sem aspas em volta dos valores (as quatro chaves, `JEV_COTA_ANONIMA=1`, `JEV_COTA_LIMITE_IP=5`). As de produção (`HOST`, `PORT`, `JEV_DADOS`, `JEV_ATRAS_DE_PROXY`) já vêm no Dockerfile.
+4. **Environment**: cole as variáveis do `.env`, sem aspas em volta dos valores (as quatro chaves, `JEV_COTA_ANONIMA=1`, `JEV_COTA_GRATIS=5`, `JEV_WHATSAPP`, `JEV_ADMIN_SENHA` e `JEV_TETO_DIARIO_USD`; o console fica em `/admin`). As de produção (`HOST`, `PORT`, `JEV_DADOS`, `JEV_ATRAS_DE_PROXY`) já vêm no Dockerfile.
 5. **Advanced → Volumes / Mounts**: crie um *Volume Mount* com o nome `jevmdb-dados` e o caminho no container `/data`. Sem isso, as fichas e a trava somem a cada novo deploy.
 6. **Domains**: host `jevmdb.w3pd.com.br`, path `/`, **Container Port `3000`**, HTTPS ligado, certificado **Let's Encrypt**.
 7. **Deploy**. Depois de o DNS (seção 1) apontar para a VPS, abra https://jevmdb.w3pd.com.br.
