@@ -1,54 +1,58 @@
-# Posts para o LinkedIn
+# Posts para o LinkedIn: JevMDB
 
-Antes de publicar, troque o link do GitHub se o repositório tiver outro nome e confira se o site já está no ar.
+Dois rascunhos. Troque o que não soar como você. Números reais dos testes: cerca de US$ 0,002 por busca, 178 filmes catalogados por cerca de US$ 0,0076, três idiomas.
 
 ---
 
-## Post 1: técnico (mostrando como foi feito)
+## Post 1: autopromoção (vanguarda, dor real e custo)
 
-Fiz um recomendador de filmes que não usa um LLM para dar a nota. Quem compara é o Jev, um modelo da TypeSafe que responde perguntas fechadas sobre um texto, com probabilidade e confiança.
+Trabalho com desenvolvimento há anos, e uma coisa que aprendi: quem para de estudar fica para trás rápido. Por isso mantenho sempre um projeto de estudo no ar, de verdade, não só um tutorial.
 
-Como funciona, em quatro partes:
+O da vez nasceu de uma dor minha. Termino um filme e quero outro igualzinho. Perguntei por perto e várias pessoas disseram o mesmo. Então construí o JevMDB: você diz o filme e o que importa (estilo, atores, ano ou história) e recebe até 10 sugestões, com a porcentagem de semelhança e onde assistir.
 
-1. Catálogo. Cada filme vira uma ficha em JSON: título no Brasil, ano, diretor, elenco, gêneros e sinopse. Os dados vêm do IMDb (busca e pôster), do Wikidata e da Wikipedia, do TMDB (sinopse em português e onde assistir) e do OMDb (nota do IMDb). Quando alguém procura um filme que ainda não está na base, ele é catalogado na hora e fica guardado. Nenhum filme é buscado duas vezes.
+O que mais me interessou nem foi o filme. Foi o custo.
 
-2. Tags de estilo. Para cada filme novo, uma única chamada ao Jev faz dezenas de perguntas do tipo sim ou não ("este filme é distopia?", "é noir?"). As tags que passam de 50% entram na ficha.
+Uso um modelo de decisão (o Jev, da TypeSafe) que não gera texto: ele dá notas e escolhe entre opções. Resultado:
+• cerca de US$ 0,002 por busca, ou seja, mil buscas custam uns US$ 2;
+• catalogar 178 filmes custou menos de 1 centavo de dólar;
+• uma IA de texto (Gemini) entra só quando a pessoa descreve o filme em vez de digitar o nome, e só para descobrir o título.
 
-3. Comparação. Para cada filme candidato, o Jev recebe as duas fichas e uma pergunta de nota de 0 a 4 por critério (estilo, atores, ano, enredo), com a descrição de cada nível. Até o ano é comparado pelo Jev, com faixas de "mesmo ano" a "mais de 30 anos de diferença". A nota vira porcentagem de similaridade.
+Isso muda a conversa dentro de uma empresa. Muita gente joga um modelo gigante em tudo e só descobre o preço na fatura. Escolher a ferramenta certa para cada etapa é o que transforma uma ideia de IA em algo que cabe no orçamento, e economia assim aparece direto no resultado.
 
-4. Texto livre. Na aba "descreva o que você quer", o Gemini Flash só identifica o filme, mesmo com erro de digitação ("obvilium com o Tom Cruise" vira Oblivion), e a pessoa confirma antes da busca. Se não for o filme certo, ela dá mais detalhes e o app tenta de novo, sem repetir o que já foi recusado. Os critérios e todas as notas continuam com o Jev.
+Fica aberto para quem quiser testar: https://jevmdb.w3pd.com.br
+São 5 buscas grátis. Se quiser mais, me chama no WhatsApp que eu libero.
 
-Números de uma busca típica: 60 comparações, cerca de 50 mil tokens, de 2 a 3 segundos, US$ 0,002. O Jev cobra US$ 42 por bilhão de tokens de entrada.
+Se ele errar feio, me conta o filme nos comentários 👇
 
-Para a consulta grátis sem cadastro, a trava combina o fingerprint do navegador, um cookie assinado e o IP guardado só como hash. O fingerprint barra a segunda busca do mesmo computador. O IP só serve de teto (5 por dia), para não bloquear colegas que dividem a mesma rede.
+#Desenvolvimento #IA #ProjetoPessoal #Custos #Tecnologia
 
-Stack: Node puro, sem nenhuma dependência, fichas em arquivos JSON, rodando numa VPS com Caddy na frente. O próximo passo é Postgres e cadastro por WhatsApp.
+---
 
-O código está aberto: https://github.com/ClaudioEden/jevmdb
+## Post 2: técnico (do zero ao ar, resumido)
+
+Fiz um recomendador de filmes com IA do zero até o ar, e o código está aberto. Resumo de como foi, em 5 passos.
+
+1️⃣ Ideia
+Escolher um filme e o que importa (estilo, atores, ano, enredo) e receber os 10 mais parecidos, com nota por critério. A ideia central: a IA dá notas, não inventa resposta. Usei o Jev (TypeSafe), que responde perguntas fechadas com probabilidades, então não alucina filme que não existe.
+
+2️⃣ Stack
+Node 22 sem nenhuma dependência, fichas em JSON, front em uma página só. Dados do TMDB, OMDb, Wikidata e Wikipedia. Gemini só para entender texto livre ("aquele do Tom Cruise na Terra abandonada" vira Oblivion). Três idiomas (pt, en, es). Cada filme novo é catalogado na hora e fica salvo.
+
+3️⃣ Implementação com IA
+Construí com o Claude, conversando e revisando cada passo, do esquema das fichas ao deploy. A IA acelerou, mas as decisões foram minhas: o que vai para o modelo, quanto custa cada chamada, o que fica local.
+
+4️⃣ Publicação: 3 caminhos, 1 escolha
+• VPS direta com systemd + Caddy: simples, mas eu cuido de tudo à mão;
+• Docker Compose: reproduzível, ainda com proxy e atualização por minha conta;
+• Dokploy: deploy a cada push no GitHub, HTTPS automático, logs e variáveis num painel.
+Fui de Dokploy na minha VPS de testes. Tropecei em duas coisas (caminho do Dockerfile e variáveis de ambiente) e ambas viraram parágrafo no guia.
+
+5️⃣ Proteção antes de divulgar
+Não tenho cobrança, então coloquei limite de 5 buscas grátis por pessoa, um teto de gasto por dia e um console que mostra consumo do Jev e do Gemini, buscas e saúde do servidor.
+
+🎁 Brinde: o projeto está pronto para qualquer pessoa baixar e instalar. Repositório público (MIT) com Dockerfile, docker-compose e um guia passo a passo de VPS.
+
+Código: https://github.com/ClaudioEden/jevmdb
 Para testar: https://jevmdb.w3pd.com.br
 
-#IA #NodeJS #DesenvolvimentoDeSoftware #Recomendação
-
----
-
-## Post 2: anúncio discreto
-
-Coloquei no ar um projeto pessoal: o JevMDB.
-
-Você escolhe um filme de que gostou, marca o que importa (estilo, atores, época, enredo) e ele devolve os mais parecidos, com a porcentagem de similaridade, o pôster e onde assistir no Brasil.
-
-Também dá para só descrever: "quero algo parecido com aquele do Stallone de juiz no futuro, da mesma época".
-
-Comecei como um teste do Jev, um modelo que dá notas em vez de escrever texto, e acabou virando algo que eu mesmo uso para escolher o filme do fim de semana.
-
-A primeira busca é grátis, sem cadastro: https://jevmdb.w3pd.com.br
-
-Se testar, me conta se a sugestão acertou. E se quiser ver como foi feito, o código está no GitHub (link nos comentários).
-
----
-
-### Dicas de publicação
-
-- Publique o técnico e o discreto em dias diferentes. O discreto rende mais com um print ou um vídeo curto de uma busca.
-- No post discreto, deixe o link do GitHub no primeiro comentário. O LinkedIn tende a mostrar menos os posts com muitos links no texto.
-- Responda os primeiros comentários na primeira hora.
+#NodeJS #IA #Docker #Dokploy #OpenSource #Claude
