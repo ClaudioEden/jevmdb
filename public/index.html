@@ -228,6 +228,19 @@ dialog#pop h2{margin:0 0 10px;font-size:1.3rem;letter-spacing:-.02em}
 dialog#pop p{margin:0 0 10px;color:var(--muted)}
 dialog#pop p b{color:var(--fg)}
 dialog#pop .btn{width:100%;margin-top:8px}
+.btn.wa{background:#25d366;color:#06310f;text-decoration:none}
+.btn.wa:hover{filter:brightness(1.05)}
+dialog#lim{border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--fg);padding:26px;max-width:min(460px,calc(100vw - 32px));box-shadow:0 24px 64px rgba(0,0,0,.35)}
+dialog#lim::backdrop{background:rgba(10,10,30,.6);backdrop-filter:blur(3px)}
+dialog#lim h2{margin:0 0 8px;font-size:1.3rem;letter-spacing:-.02em}
+dialog#lim p{margin:0 0 10px;color:var(--muted)}
+dialog#lim ol{margin:0 0 14px;padding-left:22px;color:var(--fg)}dialog#lim li{margin:4px 0}
+dialog#lim .cod,.limite .cod{display:block;text-align:center;font:700 1.6rem/1 ui-monospace,Menlo,monospace;letter-spacing:.18em;padding:12px 18px;border-radius:12px;background:var(--surface-2);border:1px dashed var(--line);margin:6px 0 14px;user-select:all}
+dialog#lim .btn{width:100%;margin-top:8px}
+dialog#lim .acoes{display:grid;gap:8px}
+.aviso-cota{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 16px;margin-bottom:12px;border-color:var(--primary)}
+.aviso-cota span{flex:1 1 220px}
+.aviso-cota .btn{min-height:40px;padding:8px 16px}
 .limite{padding:24px;text-align:center}
 .limite h3{margin:0 0 8px;font-size:1.2rem}
 .limite p{margin:0 0 12px;color:var(--muted)}
@@ -253,6 +266,21 @@ dialog#pop .btn{width:100%;margin-top:8px}
   <p id="pop-p1"></p>
   <p id="pop-p2"></p>
   <button type="button" class="btn" id="pop-ok"></button>
+</dialog>
+
+<dialog id="lim" aria-labelledby="lim-t">
+  <h2 id="lim-t"></h2>
+  <p id="lim-intro"></p>
+  <p id="lim-ip" hidden></p>
+  <ol id="lim-passos"></ol>
+  <p id="lim-cod-lbl" style="margin-bottom:0"></p>
+  <span class="cod" id="lim-cod"></span>
+  <div class="acoes">
+    <a class="btn wa" id="lim-wa" target="_blank" rel="noopener"></a>
+    <p id="lim-sem" hidden></p>
+    <button type="button" class="btn ghost" id="lim-copiar"></button>
+    <button type="button" class="btn ghost" id="lim-fechar"></button>
+  </div>
 </dialog>
 
 <main class="wrap">
@@ -330,6 +358,7 @@ dialog#pop .btn{width:100%;margin-top:8px}
   </section>
 
   <section aria-live="polite">
+    <div class="card aviso-cota" id="cota-aviso" hidden></div>
     <div class="res-head" id="res-head" hidden><h2 data-i18n="sugestoes"></h2><span id="count"></span></div>
     <div id="out"></div>
   </section>
@@ -394,6 +423,17 @@ const TXT = {
     lim_sem: "Fale com quem te enviou o link e informe este código.",
     pausado: "O JevMDB está pausado por alto volume de uso. Volte amanhã!",
     lim_ip: "Muitas buscas vieram desta rede hoje. Tente mais tarde ou peça a liberação pelo WhatsApp.",
+    lim_sub: "Você usou suas buscas grátis",
+    lim_intro: "Você usou as {n} buscas grátis da demonstração. Quer continuar? É rápido:",
+    lim_s1: "Toque no botão verde abaixo: o WhatsApp abre com a mensagem pronta.",
+    lim_s2: "Envie a mensagem. Eu libero mais {n} buscas para você.",
+    lim_s3: "Volte aqui e continue buscando. Se a tela não atualizar, recarregue a página.",
+    lim_codigo: "Seu código (já vai na mensagem):",
+    lim_copiar: "Copiar código",
+    lim_copiado: "Copiado!",
+    lim_fechar: "Agora não",
+    lim_ultima: "Essa foi sua última busca grátis. Gostou? Peça mais {n} pelo WhatsApp.",
+    lim_pedir: "Pedir mais buscas",
     lang_nome: "Português",
   },
   en: {
@@ -446,6 +486,17 @@ const TXT = {
     lim_sem: "Contact whoever sent you the link and share this code.",
     pausado: "JevMDB is paused due to high usage. Please come back tomorrow!",
     lim_ip: "Too many searches came from this network today. Try later or ask for an unlock on WhatsApp.",
+    lim_sub: "You've used your free searches",
+    lim_intro: "You've used the {n} free searches of this demo. Want to keep going? It's quick:",
+    lim_s1: "Tap the green button below: WhatsApp opens with the message ready.",
+    lim_s2: "Send it. I'll unlock {n} more searches for you.",
+    lim_s3: "Come back here and keep searching. If the page doesn't update, reload it.",
+    lim_codigo: "Your code (already in the message):",
+    lim_copiar: "Copy code",
+    lim_copiado: "Copied!",
+    lim_fechar: "Not now",
+    lim_ultima: "That was your last free search. Liked it? Ask for {n} more on WhatsApp.",
+    lim_pedir: "Ask for more searches",
     lang_nome: "English",
   },
   es: {
@@ -498,6 +549,17 @@ const TXT = {
     lim_sem: "Habla con quien te envió el enlace y dile este código.",
     pausado: "JevMDB está en pausa por alto volumen de uso. ¡Vuelve mañana!",
     lim_ip: "Llegaron demasiadas búsquedas desde esta red hoy. Intenta más tarde o pide la liberación por WhatsApp.",
+    lim_sub: "Usaste tus búsquedas gratis",
+    lim_intro: "Usaste las {n} búsquedas gratis de esta demostración. ¿Quieres continuar? Es rápido:",
+    lim_s1: "Toca el botón verde de abajo: WhatsApp se abre con el mensaje listo.",
+    lim_s2: "Envíalo. Yo te libero {n} búsquedas más.",
+    lim_s3: "Vuelve aquí y sigue buscando. Si la pantalla no se actualiza, recarga la página.",
+    lim_codigo: "Tu código (ya va en el mensaje):",
+    lim_copiar: "Copiar código",
+    lim_copiado: "¡Copiado!",
+    lim_fechar: "Ahora no",
+    lim_ultima: "Esa fue tu última búsqueda gratis. ¿Te gustó? Pide {n} más por WhatsApp.",
+    lim_pedir: "Pedir más búsquedas",
     lang_nome: "Español",
   },
 };
@@ -565,18 +627,44 @@ function mostrarCota(c) {
   el.hidden = false; el.textContent = T("cota_pill", {r: c.restantes, l: c.limite});
   el.title = T("cota_title"); el.classList.toggle("zero", c.restantes <= 0);
 }
+const zerada = () => COTA && COTA.ativa !== false && COTA.restantes <= 0;
+const linkWA = (c, wa = WHATS) => wa ? `https://wa.me/${wa}?text=${encodeURIComponent(T("lim_wa", {c}))}` : null;
+// Janela amigável: explica o que aconteceu, o que fazer em 3 passos e abre o WhatsApp com o código na mensagem.
+function abrirLimite(d = {}) {
+  if (d.cota) mostrarCota(d.cota);
+  const c = (d.cota || COTA || {}).codigo || "", link = linkWA(c, d.whatsapp || WHATS), pausado = d.codigo === "pausado";
+  $("#lim-t").textContent = pausado ? T("pausado") : T("lim_t");
+  $("#lim-intro").textContent = pausado ? "" : T("lim_intro", {n: GRATIS});
+  $("#lim-ip").hidden = d.motivo !== "ip"; $("#lim-ip").textContent = T("lim_ip");
+  $("#lim-passos").innerHTML = pausado || !link ? "" : [T("lim_s1"), T("lim_s2", {n: GRATIS}), T("lim_s3")].map(t => `<li>${esc(t)}</li>`).join("");
+  $("#lim-cod-lbl").textContent = pausado ? "" : T("lim_codigo"); $("#lim-cod").textContent = pausado ? "" : c;
+  $("#lim-cod").hidden = $("#lim-cod-lbl").hidden = pausado;
+  $("#lim-wa").hidden = pausado || !link; if (link) { $("#lim-wa").href = link; $("#lim-wa").textContent = T("lim_btn"); }
+  $("#lim-sem").hidden = pausado || !!link; $("#lim-sem").textContent = T("lim_sem");
+  $("#lim-copiar").hidden = pausado; $("#lim-copiar").textContent = T("lim_copiar"); $("#lim-fechar").textContent = T("lim_fechar");
+  if (typeof $("#lim").showModal === "function") { if (!$("#lim").open) $("#lim").showModal(); }
+}
+$("#lim-fechar").onclick = () => $("#lim").close();
+$("#lim-copiar").onclick = async () => {
+  try { await navigator.clipboard.writeText($("#lim-cod").textContent); $("#lim-copiar").textContent = T("lim_copiado"); } catch {}
+};
 function mostrarLimite(d) {
   $("#res-head").hidden = false; $("#count").textContent = "";
-  if (d.codigo === "pausado") { $("#out").innerHTML = `<div class="card limite"><p>${esc(T("pausado"))}</p></div>`; return; }
   if (d.cota) mostrarCota(d.cota);
-  const c = (d.cota || COTA || {}).codigo || "", wa = d.whatsapp || WHATS;
-  const link = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(T("lim_wa", {c}))}` : null;
-  $("#out").innerHTML = `<div class="card limite"><h3>${esc(T("lim_t"))}</h3>
-    ${d.motivo === "ip" ? `<p>${esc(T("lim_ip"))}</p>` : ""}
-    <p>${esc(T("lim_p", {n: GRATIS}))}</p><div class="cod" aria-label="code">${esc(c)}</div><br>
-    ${link ? `<a class="btn" href="${link}" target="_blank" rel="noopener">${esc(T("lim_btn"))}</a>` : `<p>${esc(T("lim_sem"))}</p>`}</div>`;
+  const c = (d.cota || COTA || {}).codigo || "", link = linkWA(c, d.whatsapp || WHATS);
+  $("#out").innerHTML = d.codigo === "pausado" ? `<div class="card limite"><p>${esc(T("pausado"))}</p></div>` : `<div class="card limite"><h3>${esc(T("lim_t"))}</h3>
+    <p>${esc(T("lim_intro", {n: GRATIS}))}</p>
+    ${link ? `<a class="btn wa" href="${link}" target="_blank" rel="noopener">${esc(T("lim_btn"))}</a>` : `<p>${esc(T("lim_sem"))}</p>`}</div>`;
+  abrirLimite(d);
 }
-$("#cota").onclick = () => { if (COTA && COTA.restantes <= 0) mostrarLimite({cota: COTA}); else abrirAviso(); };
+// Depois da última busca grátis: um aviso gentil com o atalho para pedir mais.
+function avisoUltima(c) {
+  const el = $("#cota-aviso");
+  if (!c || c.ativa === false || c.restantes > 0) { el.hidden = true; return; }
+  el.hidden = false; el.innerHTML = `<span>${esc(T("lim_ultima", {n: GRATIS}))}</span><button type="button" class="btn wa" id="aviso-pedir">${esc(T("lim_pedir"))}</button>`;
+  $("#aviso-pedir").onclick = () => abrirLimite({cota: c});
+}
+$("#cota").onclick = () => { if (zerada()) abrirLimite(); else abrirAviso(); };
 function abrirAviso() {
   $("#pop-t").textContent = T("pop_t"); $("#pop-p1").innerHTML = T("pop_p1", {n: GRATIS}); $("#pop-p2").textContent = T("pop_p2", {n: GRATIS});
   $("#pop-ok").textContent = T("pop_ok");
@@ -587,6 +675,7 @@ $("#pop").addEventListener("cancel", () => { try { localStorage.setItem("jevmdb_
 api("/api/cota").then(r => r.json()).then(c => {
   WHATS = c.whatsapp; GRATIS = c.gratis || GRATIS; mostrarCota(c);
   if (c.ativa === false) return;
+  if (zerada()) { abrirLimite(); return; }
   let visto = false; try { visto = !!localStorage.getItem("jevmdb_visto"); } catch {}
   if (!visto) abrirAviso();
 }).catch(() => {});
@@ -859,6 +948,7 @@ function mostrarFalta(buscaId) {
 $("#f").addEventListener("submit", e => {
   e.preventDefault();
   if ($("#go").disabled) return;
+  if (zerada()) return abrirLimite();
   if (ABA === "texto") return identificar();
   buscar({filme: ESCOLHIDO.id || "", imdb: ESCOLHIDO.id ? "" : ESCOLHIDO.imdb, criterios: criteriosMarcados(),
     foco: $("#tagbox").hidden ? [] : [...document.querySelectorAll("#tags input:checked")].map(i => i.value)}, ESCOLHIDO.titulo, ESCOLHIDO.poster, false);
@@ -866,7 +956,7 @@ $("#f").addEventListener("submit", e => {
 
 async function buscar(body, titulo, poster, peloTexto) {
   recolher(titulo, T("consultando"), poster);
-  $("#avaliar").hidden = true;
+  $("#avaliar").hidden = true; $("#cota-aviso").hidden = true;
   $("#res-head").hidden = false; $("#count").textContent = "";
   $("#out").innerHTML = `<div class="lista">${'<div class="skel"></div>'.repeat(3)}</div>`;
   limparUso();
@@ -876,12 +966,13 @@ async function buscar(body, titulo, poster, peloTexto) {
     const d = await r.json();
     mostrarUso(d.uso || {custo_usd: 0, input_tokens: 0, output_tokens: 0, chamadas: 0, tempo_ms: 0}, d.uso_total);
     if (r.status === 402 || r.status === 503) {
-      $("#r-sub").textContent = T("lim_t");
+      $("#r-sub").textContent = T("lim_sub");
       mostrarLimite(d);
       return;
     }
     if (!r.ok) throw new Error(erroTxt(d));
     if (d.cota) mostrarCota(d.cota);
+    avisoUltima(d.cota);
     mostrarAvaliacao(d.busca_id);
     const ref = d.referencia;
     if (d.importado) CAT.push(ref);
