@@ -37,6 +37,7 @@ Escolher um filme e o que importa (estilo, atores, ano, enredo) e receber os 10 
 
 2️⃣ Stack
 Node 22 sem nenhuma dependência, fichas em JSON, front em uma página só. Dados do TMDB, OMDb, Wikidata e Wikipedia. Gemini só para entender texto livre ("aquele do Tom Cruise na Terra abandonada" vira Oblivion). Três idiomas (pt, en, es). Cada filme novo é catalogado na hora e fica salvo.
+Um detalhe de custo: desliguei o "raciocínio" do Gemini nessa etapa, que só precisa descobrir o título. No mesmo pedido, o consumo caiu de 188 para 32 tokens, com a mesma resposta.
 
 3️⃣ Implementação com IA
 Construí com o Claude, conversando e revisando cada passo, do esquema das fichas ao deploy. A IA acelerou, mas as decisões foram minhas: o que vai para o modelo, quanto custa cada chamada, o que fica local.
